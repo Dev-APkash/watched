@@ -1,0 +1,5 @@
+*
+!go.mod
+!*.go
+!index.html
+*_test.go

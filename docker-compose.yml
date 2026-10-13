@@ -1,0 +1,13 @@
+services:
+  watched:
+    image: ghcr.io/dev-apkash/watched:1
+    container_name: watched
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env
+    volumes:
+      - watched-data:/data
+
+volumes:
+  watched-data:

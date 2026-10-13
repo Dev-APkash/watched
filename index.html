@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:,">
+<title>Watched</title>
+<style>
+:root { --bg:#0f1115; --card:#1a1d24; --text:#e6e8ec; --muted:#8b92a0; --accent:#4f8cff; --ok:#2f9e5d; --done:#7b5cff; --warn:#e0a030 }
+* { box-sizing:border-box }
+body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif }
+header { position:sticky; top:0; z-index:1; background:var(--bg); padding:12px 16px; border-bottom:1px solid #222631; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center }
+h1 { margin:0; font-size:20px }
+.meta { color:var(--muted); font-size:12px; flex:1 }
+.warn { color:var(--warn) }
+.controls { display:flex; flex-wrap:wrap; gap:8px; width:100% }
+button, select, input { font:inherit; color:var(--text); background:var(--card); border:1px solid #2c313d; border-radius:6px; padding:6px 10px }
+button { cursor:pointer }
+button[aria-pressed=true] { background:var(--accent); border-color:var(--accent) }
+input[type=search] { flex:1; min-width:140px }
+form { margin:0 }
+main { padding:16px; display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)) }
+@media (max-width:480px) { main { gap:10px; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)) } }
+.card[hidden], #empty[hidden] { display:none }
+.poster { display:block; width:100%; aspect-ratio:2/3; object-fit:cover; border-radius:6px; background:var(--card) }
+.ph { display:flex; align-items:center; justify-content:center; text-align:center; padding:8px; color:var(--muted); font-size:13px }
+.title { margin:6px 0 0; font-size:13px; font-weight:600; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
+.sub { color:var(--muted); font-size:12px }
+.badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:11px; font-weight:600; color:#fff; background:var(--ok); margin-right:4px }
+.badge.done { background:var(--done) }
+.nw { white-space:nowrap }
+#empty { grid-column:1/-1; color:var(--muted); text-align:center; padding:48px 0 }
+details.import summary { cursor:pointer; color:var(--muted); font-size:13px }
+details.import[open] { width:100% }
+details.import form { display:flex; gap:8px; margin-top:8px }
+details.import input { flex:1; min-width:0 }
+.hint { color:var(--muted); font-size:12px; margin:6px 0 0 }
+p.warn { font-size:13px; margin:6px 0 0 }
+</style>
+</head>
+<body>
+<header>
+  <h1>Watched</h1>
+  <div class="meta">
+    {{.Movies}} movie{{if ne .Movies 1}}s{{end}} · {{.Shows}} show{{if ne .Shows 1}}s{{end}} · synced {{.Synced}}
+    {{if .SyncErr}}<span class="warn" title="{{.SyncErr}}">· last sync failed, showing cached data</span>{{end}}
+  </div>
+  <form method="post" action="refresh"><button>Refresh now</button></form>
+  <details class="import"{{if .ImportErr}} open{{end}}>
+    <summary>Import from Trakt</summary>
+    {{- if .Trakt}}
+    <form method="post" action="import-trakt">
+      <input name="profile" placeholder="https://trakt.tv/users/yourname" aria-label="Trakt profile link" required>
+      <button>Import</button>
+    </form>
+    <p class="hint">Adds the watch history of a public Trakt profile. Importing again replaces the previous import.</p>
+    {{- else}}
+    <p class="hint">Trakt import is turned off. Set TRAKT_CLIENT_ID to enable it.</p>
+    {{- end}}
+    {{- if .ImportUser}}
+    <p class="hint">Last import: {{.ImportCount}} titles from {{.ImportUser}}, {{.ImportAgo}}.</p>
+    {{- end}}
+    {{- with .ImportErr}}
+    <p class="warn">{{.}}</p>
+    {{- end}}
+  </details>
+  <div class="controls">
+    <div role="group" aria-label="Filter">
+      <button data-filter="all" aria-pressed="true">All</button>
+      <button data-filter="movie" aria-pressed="false">Movies</button>
+      <button data-filter="show" aria-pressed="false">Shows</button>
+    </div>
+    <select id="sort" aria-label="Sort">
+      <option value="date">Recently watched</option>
+      <option value="title">Title A–Z</option>
+    </select>
+    <input id="q" type="search" placeholder="Search titles" aria-label="Search titles">
+  </div>
+</header>
+<main id="grid">
+{{- range .Items}}
+  <div class="card" data-type="{{.Type}}" data-title="{{lower .Title}}" data-date="{{iso .LastPlayed}}">
+    {{- with .Poster}}
+    <img class="poster" src="posters/{{.}}" loading="lazy" alt="">
+    {{- else}}
+    <div class="poster ph">{{.Title}}</div>
+    {{- end}}
+    <p class="title">{{.Title}}</p>
+    <div class="sub">{{if .Year}}{{.Year}}{{end}}{{if eq .Type "show"}} · {{.Played}} / {{.Total}} episodes{{end}}</div>
+    <div class="sub">{{if .Completed}}<span class="badge done">Completed</span>{{else}}<span class="badge">Watched</span>{{end}}<span class="nw">{{date .LastPlayed}}</span></div>
+  </div>
+{{- end}}
+  <p id="empty"{{if .Items}} hidden{{end}}>{{if .Never}}First sync in progress. Reload in a moment.{{else}}Nothing watched yet.{{end}}</p>
+</main>
+<script>
+(() => {
+  const grid = document.getElementById('grid'), empty = document.getElementById('empty');
+  const q = document.getElementById('q'), sort = document.getElementById('sort');
+  const cards = [...grid.querySelectorAll('.card')];
+  const filters = document.querySelectorAll('[data-filter]');
+  let type = 'all';
+  function apply() {
+    const term = q.value.trim().toLowerCase();
+    let shown = 0;
+    for (const c of cards) {
+      c.hidden = !((type === 'all' || c.dataset.type === type) && c.dataset.title.includes(term));
+      if (!c.hidden) shown++;
+    }
+    if (cards.length) { empty.hidden = shown > 0; empty.textContent = 'No matches.'; }
+  }
+  for (const b of filters) b.onclick = () => {
+    type = b.dataset.filter;
+    for (const o of filters) o.setAttribute('aria-pressed', o === b);
+    apply();
+  };
+  sort.onchange = () => {
+    cards.sort(sort.value === 'title'
+      ? (a, b) => a.dataset.title.localeCompare(b.dataset.title)
+      : (a, b) => b.dataset.date.localeCompare(a.dataset.date));
+    grid.prepend(...cards);
+  };
+  q.oninput = apply;
+  for (const f of document.querySelectorAll('header form')) f.onsubmit = () => {
+    const b = f.querySelector('button');
+    b.disabled = true;
+    b.textContent = 'Working…';
+  };
+})();
+</script>
+</body>
+</html>

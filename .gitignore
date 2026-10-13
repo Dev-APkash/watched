@@ -1,0 +1,7 @@
+# Binaries
+/watched
+/watched.exe
+
+# Local config and runtime data
+.env
+/data/
