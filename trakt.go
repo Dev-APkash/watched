@@ -139,7 +139,9 @@ type traktMedia struct {
 		Tmdb  int
 		Tvdb  int
 	}
-	AiredEpisodes int `json:"aired_episodes"` // shows
+	AiredEpisodes int      `json:"aired_episodes"` // shows
+	Runtime       int      // minutes; per episode for shows
+	Genres        []string // lower-case slugs such as "science-fiction"
 	Images        struct {
 		Poster []string // host and path without scheme, e.g. "media.trakt.tv/images/…/posters/medium/….webp"
 	}
@@ -163,7 +165,7 @@ func (m traktMedia) ext() map[string]string {
 func (m traktMedia) entry(kind string, last time.Time) entry {
 	e := entry{
 		ID: fmt.Sprintf("trakt-%s-%d", kind, m.IDs.Trakt), Type: kind, Title: m.Title, Year: m.Year,
-		LastPlayed: last, Ext: m.ext(),
+		LastPlayed: last, Ext: m.ext(), Genres: genreNames(m.Genres),
 	}
 	if len(m.Images.Poster) > 0 {
 		// "thumb" (300x450, ~20 KB) instead of the default "medium" (600x900, ~70 KB).
@@ -173,17 +175,33 @@ func (m traktMedia) entry(kind string, last time.Time) entry {
 	return e
 }
 
+// genreNames turns Trakt's genre slugs into names like Jellyfin's ("science-fiction" → "Science Fiction").
+func genreNames(slugs []string) []string {
+	var out []string
+	for _, s := range slugs {
+		words := strings.Fields(strings.ReplaceAll(s, "-", " "))
+		for i, w := range words {
+			words[i] = strings.ToUpper(w[:1]) + w[1:]
+		}
+		if len(words) > 0 {
+			out = append(out, strings.Join(words, " "))
+		}
+	}
+	return out
+}
+
 // watched fetches everything a public Trakt profile has watched.
 func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 	var out []entry
 	u := "/users/" + url.PathEscape(user)
-	err := each(ctx, t, u+"/watched/movies?extended=images", user, func(m struct {
+	err := each(ctx, t, u+"/watched/movies?extended=full,images", user, func(m struct {
 		Plays         int       `json:"plays"`
 		LastWatchedAt time.Time `json:"last_watched_at"`
 		Movie         traktMedia
 	}) {
 		e := m.Movie.entry("movie", m.LastWatchedAt)
 		e.Plays = max(m.Plays, 1)
+		e.Minutes = m.Movie.Runtime * e.Plays
 		out = append(out, e)
 	})
 	if err != nil {
@@ -202,7 +220,7 @@ func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 	shows := map[int]*show{}
 	posters := map[int][]string{}
 	var order []int
-	err = each(ctx, t, u+"/watched/shows?extended=images", user, func(s show) {
+	err = each(ctx, t, u+"/watched/shows?extended=full,images", user, func(s show) {
 		id := s.Show.IDs.Trakt
 		shows[id] = &s
 		order = append(order, id)
@@ -278,6 +296,7 @@ func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 		if !inHistory[id] {
 			e.Plays = max(s.Plays, played)
 		}
+		e.Minutes = s.Show.Runtime * e.Plays
 		out = append(out, e)
 	}
 	sortRecent(out)

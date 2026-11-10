@@ -229,6 +229,7 @@ kbd {
   color: var(--t1);
   cursor: pointer;
   font: 700 13px/1.2 var(--ui);
+  text-decoration: none;
   box-shadow: inset 0 -3px 0 rgba(59, 34, 24, .16);
   transition: background .2s, transform .2s var(--ease-out), box-shadow .2s;
 }
@@ -1770,6 +1771,10 @@ kbd {
         {{- end}}
       </div>
     </details>
+    <a class="text-btn" href="logbook">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      Logbook
+    </a>
     <details class="trakt backup">
       <summary class="text-btn">Backup</summary>
       <div class="trakt-pop">

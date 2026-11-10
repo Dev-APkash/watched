@@ -16,14 +16,14 @@ import (
 const (
 	traktMoviesJSON = `[
 	 {"plays":2,"last_watched_at":"2024-07-01T18:00:00.000Z","last_updated_at":"2024-07-01T18:00:00.000Z",
-	  "movie":{"title":"Arrival","year":2016,"ids":{"trakt":1,"slug":"arrival-2016","imdb":"tt2543164","tmdb":329865},
+	  "movie":{"title":"Arrival","year":2016,"runtime":116,"genres":["drama","science-fiction"],"ids":{"trakt":1,"slug":"arrival-2016","imdb":"tt2543164","tmdb":329865},
 	   "images":{"poster":["media.trakt.tv/images/movies/000/000/001/posters/medium/aa11.jpg.webp"]}}},
 	 {"plays":1,"last_watched_at":"2020-01-01T00:00:00.000Z",
 	  "movie":{"title":"Old Film","year":1950,"ids":{"trakt":2,"imdb":"tt0000002","tmdb":2},"images":{"poster":[]}}}]`
 
 	traktShowsJSON = `[
 	 {"plays":4,"last_watched_at":"2023-01-05T00:00:00.000Z","reset_at":null,
-	  "show":{"title":"Show A","year":2010,"aired_episodes":3,"ids":{"trakt":10,"tvdb":121361,"imdb":"tt0000010","tmdb":10}}},
+	  "show":{"title":"Show A","year":2010,"aired_episodes":3,"runtime":45,"genres":["comedy"],"ids":{"trakt":10,"tvdb":121361,"imdb":"tt0000010","tmdb":10}}},
 	 {"plays":3,"last_watched_at":"2022-05-01T00:00:00.000Z","reset_at":"2022-04-01T00:00:00.000Z",
 	  "show":{"title":"Rewatching","year":2015,"aired_episodes":10,"ids":{"trakt":11,"tvdb":11}}},
 	 {"plays":1,"last_watched_at":"2022-01-01T00:00:00.000Z",
@@ -129,6 +129,13 @@ func TestTraktWatched(t *testing.T) {
 		if items[i].Plays != w.plays || first != w.first {
 			t.Errorf("item %d (%s): plays %d first %q, want %d %q", i, items[i].Title, items[i].Plays, first, w.plays, w.first)
 		}
+	}
+	// Minutes are the runtime times plays; genre slugs become names.
+	if items[0].Minutes != 232 || items[1].Minutes != 135 || items[3].Minutes != 0 {
+		t.Errorf("minutes = %d %d %d", items[0].Minutes, items[1].Minutes, items[3].Minutes)
+	}
+	if got := strings.Join(items[0].Genres, "|"); got != "Drama|Science Fiction" {
+		t.Errorf("genres = %s", got)
 	}
 	if items[0].Poster() != "traktmovie1-aa11jpgwebp.webp" {
 		t.Errorf("poster file = %q", items[0].Poster())

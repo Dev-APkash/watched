@@ -20,7 +20,7 @@ const (
 	usersJSON = `[{"Name":"Alice","ServerId":"s1","Id":"a1b2c3","HasPassword":true},{"Name":"bob","Id":"d4e5f6"}]`
 
 	moviesJSON = `[
-	 {"Name":"Arrival","Id":"m1","Type":"Movie","ProductionYear":2016,"ImageTags":{"Primary":"tag1"},"ProviderIds":{"Imdb":"tt2543164","Tmdb":"329865"},
+	 {"Name":"Arrival","Id":"m1","Type":"Movie","ProductionYear":2016,"ImageTags":{"Primary":"tag1"},"ProviderIds":{"Imdb":"tt2543164","Tmdb":"329865"},"Genres":["Drama","Science Fiction"],"RunTimeTicks":69480000000,
 	  "UserData":{"PlayCount":3,"Played":true,"LastPlayedDate":"2024-03-01T20:00:00.0000000Z","Key":"m1"}},
 	 {"Name":"Brazil","Id":"m2","Type":"Movie","ProductionYear":1985,"ImageTags":{},
 	  "UserData":{"Played":true,"LastPlayedDate":"2024-05-10T21:30:15.1234567"}},
@@ -28,13 +28,13 @@ const (
 	  "UserData":{"Played":true,"LastPlayedDate":null}}]`
 
 	episodesJSON = `[
-	 {"Name":"Pilot","Id":"e1","Type":"Episode","SeriesId":"sA","SeriesName":"Show A","ParentIndexNumber":1,"IndexNumber":1,"UserData":{"PlayCount":2,"Played":true,"LastPlayedDate":"2024-01-01T00:00:00Z"}},
-	 {"Name":"Two","Id":"e2","Type":"Episode","SeriesId":"sA","SeriesName":"Show A","ParentIndexNumber":1,"IndexNumber":2,"UserData":{"Played":true,"LastPlayedDate":"2024-06-01T00:00:00Z"}},
+	 {"Name":"Pilot","Id":"e1","Type":"Episode","SeriesId":"sA","SeriesName":"Show A","ParentIndexNumber":1,"IndexNumber":1,"RunTimeTicks":26000000000,"UserData":{"PlayCount":2,"Played":true,"LastPlayedDate":"2024-01-01T00:00:00Z"}},
+	 {"Name":"Two","Id":"e2","Type":"Episode","SeriesId":"sA","SeriesName":"Show A","ParentIndexNumber":1,"IndexNumber":2,"RunTimeTicks":13000000000,"UserData":{"Played":true,"LastPlayedDate":"2024-06-01T00:00:00Z"}},
 	 {"Name":"Opener","Id":"e3","Type":"Episode","SeriesId":"sB","SeriesName":"Show B","UserData":{"Played":true,"LastPlayedDate":"2024-02-01T00:00:00Z"}},
 	 {"Name":"Orphan","Id":"e4","Type":"Episode","UserData":{"Played":true}}]`
 
 	seriesJSON = `[
-	 {"Name":"Show A","Id":"sA","Type":"Series","ProductionYear":2010,"ImageTags":{"Primary":"tagA"},"ProviderIds":{"Tvdb":"121361"},"UserData":{"UnplayedItemCount":0,"Played":true}},
+	 {"Name":"Show A","Id":"sA","Type":"Series","ProductionYear":2010,"ImageTags":{"Primary":"tagA"},"ProviderIds":{"Tvdb":"121361"},"Genres":["Comedy"],"UserData":{"UnplayedItemCount":0,"Played":true}},
 	 {"Name":"Show B","Id":"sB","Type":"Series","ProductionYear":2020,"ImageTags":{"Primary":"tagB"},"UserData":{"UnplayedItemCount":3,"Played":false}}]`
 
 	// Seasons of every series in the library, watched or not.
@@ -194,6 +194,13 @@ func TestFetchWatched(t *testing.T) {
 	}
 	if !items[1].FirstPlayed.IsZero() {
 		t.Error("Jellyfin has no first-play date for movies, so none should be made up")
+	}
+	// Runtimes times plays: Arrival 116 min (115.8 rounded) x3; Show A 43 min x2 + 22 min x1.
+	if items[2].Minutes != 348 || items[0].Minutes != 108 || items[1].Minutes != 0 {
+		t.Errorf("minutes = Arrival %d, Show A %d, Brazil %d", items[2].Minutes, items[0].Minutes, items[1].Minutes)
+	}
+	if fmt.Sprint(items[2].Genres, items[0].Genres) != "[Drama Science Fiction] [Comedy]" {
+		t.Errorf("genres = %v %v", items[2].Genres, items[0].Genres)
 	}
 	if items[2].Ext["imdb"] != "tt2543164" || items[0].Ext["tvdb"] != "121361" {
 		t.Errorf("provider ids not parsed: %v %v", items[2].Ext, items[0].Ext)

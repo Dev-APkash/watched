@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='10' y='4' width='44' height='56' rx='6' fill='%23f7e7cf' stroke='%233b2218' stroke-width='4'/><rect x='17' y='11' width='30' height='42' rx='3' fill='%23e57a35' stroke='%233b2218' stroke-width='3'/></svg>">
+<title>Logbook · Watched</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<style>
+:root {
+  /* The same cabin-evening palette as the shelf (index.html) */
+  --line: #3b2218;
+  --line-soft: rgba(59, 34, 24, .2);
+  --cream: #f7e7cf;
+  --cream-2: #efd7b6;
+  --cream-3: #e2c195;
+  --t1: #3b2218;
+  --t2: #6a4634;
+  --t3: #7f5a46;
+  --wood-hi: #a46c47;
+  --bay-shade: #2a1810;
+  --sofa: #4a5890;
+  --ember: #e57a35;
+  --flame: #f6c453;
+  --leaf: #6f9a4f;
+  --soft-shadow: 0 14px 30px -14px rgba(28, 12, 5, .7);
+  --hand: "Caveat", "Segoe Print", cursive;
+  --display: "Young Serif", Georgia, serif;
+  --ui: "Figtree", system-ui, sans-serif;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+}
+* { box-sizing: border-box; }
+::selection { background: var(--flame); color: var(--line); }
+:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; border-radius: 6px; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--t1);
+  font: 15px/1.5 var(--ui);
+  background:
+    linear-gradient(180deg, rgba(34, 17, 9, .55), rgba(34, 17, 9, .78)),
+    var(--bay-shade) url("assets/cabin-still.jpg") center / cover fixed no-repeat;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding: 34px 28px 56px; }
+
+/* Masthead: the same hung sign as the shelf */
+.masthead { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 26px; }
+.card {
+  background: var(--cream);
+  border: 2.5px solid var(--line);
+  border-radius: 14px;
+  box-shadow: inset 0 -5px 0 rgba(59, 34, 24, .1), var(--soft-shadow);
+}
+.nameplate { position: relative; padding: 16px 24px 18px; margin-top: 8px; }
+.nameplate::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  width: 150px;
+  height: 31px;
+  transform: translateX(-50%);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 31'%3E%3Cpath d='M4 31 75 5l71 26' fill='none' stroke='%233b2218' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='75' cy='5' r='4.5' fill='%23a46c47' stroke='%233b2218' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.np-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+h1 { margin: 0; font: 400 50px/1 var(--display); letter-spacing: -0.02em; }
+.owner { font: 600 25px/1 var(--hand); color: var(--sofa); transform: rotate(-3deg); transform-origin: left center; display: inline-block; }
+.np-sub { margin: 8px 0 0; color: var(--t2); font-size: 14px; }
+.text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 15px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--cream-2);
+  color: var(--t1);
+  font: 700 14px/1.2 var(--ui);
+  text-decoration: none;
+  box-shadow: inset 0 -3px 0 rgba(59, 34, 24, .16), var(--soft-shadow);
+  transition: background .2s, transform .2s var(--ease-out);
+}
+.text-btn:hover { background: var(--flame); transform: translateY(-1px); }
+.text-btn svg { width: 16px; height: 16px; }
+
+/* Totals */
+.totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; padding: 6px; margin-bottom: 22px; }
+.total { padding: 14px 18px 16px; border-right: 1.5px dashed var(--line-soft); }
+.total:last-child { border-right: 0; }
+.total b { display: block; font: 400 36px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.total span { font: 600 13px/1.3 var(--ui); color: var(--t3); }
+.total small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--t2); }
+
+/* Sections */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.grid > .wide { grid-column: 1 / -1; }
+section.card { padding: 18px 22px 20px; min-width: 0; }
+h2 { margin: 0 0 4px; font: 400 23px/1.2 var(--display); }
+.hint { margin: 0 0 14px; font-size: 13px; color: var(--t3); }
+.empty { margin: 0; color: var(--t2); }
+
+/* Bars: label, track, value */
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.bars li { display: grid; grid-template-columns: 7.5em 1fr 3.2em; align-items: center; gap: 12px; font-size: 14px; }
+.bars .lbl { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bars .val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.track { height: 14px; border-radius: 5px; background: rgba(59, 34, 24, .1); overflow: hidden; display: flex; }
+.track i { display: block; height: 100%; }
+.track i + i { border-left: 1.5px solid var(--cream); }
+.film { background: var(--ember); }
+.series { background: var(--sofa); }
+.genre { background: var(--leaf); }
+.decade { background: var(--wood-hi); }
+.years li { grid-template-columns: 3.4em 1fr 3.2em; }
+.years .lbl { font-variant-numeric: tabular-nums; }
+.legend { display: flex; gap: 16px; margin: 0 0 12px; font-size: 13px; color: var(--t2); }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+/* Most rewatched */
+.rewatched { list-style: none; margin: 0; padding: 0; counter-reset: r; }
+.rewatched li { display: flex; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+.rewatched li:last-child { border-bottom: 0; }
+.rewatched li::before { counter-increment: r; content: counter(r); font: 600 22px/1 var(--hand); color: var(--sofa); width: 1em; }
+.rewatched .t { flex: 1; min-width: 0; font-weight: 600; }
+.rewatched .t small { color: var(--t3); font-weight: 500; }
+.rewatched .n { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.foot { margin: 22px 0 0; text-align: center; font-size: 13px; color: var(--cream-2); }
+
+@media (max-width: 760px) {
+  .grid { grid-template-columns: 1fr; }
+  .total { border-right: 0; border-bottom: 1.5px dashed var(--line-soft); }
+  .total:last-child { border-bottom: 0; }
+}
+@media (max-width: 640px) {
+  .wrap { padding: 30px 16px 40px; }
+  h1 { font-size: 40px; }
+  .totals { grid-template-columns: 1fr 1fr; }
+  .total { padding: 12px 14px; }
+  .total:nth-child(odd) { border-right: 1.5px dashed var(--line-soft); }
+  .total:last-child { border-bottom: 0; }
+  .total:last-child:nth-child(odd) { grid-column: 1 / -1; border-right: 0; }
+  .total b { font-size: 29px; }
+  section.card { padding: 16px; }
+  .bars li { grid-template-columns: 6em 1fr 2.6em; gap: 9px; }
+  .years li { grid-template-columns: 3.2em 1fr 2.6em; }
+}
+@media (prefers-reduced-motion: reduce) { .text-btn { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div class="card nameplate">
+      <div class="np-head">
+        <h1>Logbook</h1>
+        <span class="owner">{{if .User}}{{.User}}’s shelf{{else}}the shelf{{end}}</span>
+      </div>
+      <p class="np-sub">Everything below is worked out from your synced history{{if .Synced}}, last synced {{.Synced}}{{end}}.</p>
+    </div>
+    <a class="text-btn" href="./">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Back to the shelf
+    </a>
+  </header>
+
+  {{- with .Log}}
+  {{- if not .Titles}}
+  <section class="card">
+    <h2>Nothing logged yet</h2>
+    <p class="empty">Once Watched has synced with Jellyfin, or you've imported from Trakt, your totals, years and genres show up here.</p>
+  </section>
+  {{- else}}
+  <div class="card totals">
+    <div class="total"><b>{{num .Titles}}</b><span>titles</span></div>
+    <div class="total"><b>{{num .Movies}}</b><span>films</span></div>
+    <div class="total"><b>{{num .Shows}}</b><span>series</span><small>{{num .Episodes}} episode{{if ne .Episodes 1}}s{{end}}</small></div>
+    <div class="total"><b>{{if .Minutes}}{{num .Hours}}{{else}}–{{end}}</b><span>hours watched</span>{{if .Minutes}}<small>{{.Days}}</small>{{end}}</div>
+    <div class="total"><b>{{num .Plays}}</b><span>plays</span><small>rewatches included</small></div>
+  </div>
+
+  <div class="grid">
+    <section class="card wide">
+      <h2>Titles per year</h2>
+      <p class="hint">Counted in the year you last watched each title.{{if .Undated}} {{.Undated}} without a watch date {{if eq .Undated 1}}is{{else}}are{{end}} left out.{{end}}</p>
+      {{- if .Years}}
+      <p class="legend"><span><i class="film"></i>Films</span><span><i class="series"></i>Series</span></p>
+      <ul class="bars years">
+        {{- $max := .MaxYear}}
+        {{- range .Years}}
+        <li title="{{.Year}}: {{.Movies}} film{{if ne .Movies 1}}s{{end}}, {{.Shows}} series">
+          <span class="lbl">{{.Year}}</span>
+          <span class="track">{{if .Movies}}<i class="film" style="width:{{pct .Movies $max}}%"></i>{{end}}{{if .Shows}}<i class="series" style="width:{{pct .Shows $max}}%"></i>{{end}}</span>
+          <span class="val">{{.Titles}}</span>
+        </li>
+        {{- end}}
+      </ul>
+      {{- else}}
+      <p class="empty">No watch dates yet.</p>
+      {{- end}}
+    </section>
+
+    <section class="card">
+      <h2>Top genres</h2>
+      <p class="hint">Titles per genre, from Jellyfin and Trakt. A title can be in several.</p>
+      {{- if .Genres}}
+      <ul class="bars">
+        {{- $max := .MaxGenre}}
+        {{- range .Genres}}
+        <li><span class="lbl" title="{{.Name}}">{{.Name}}</span><span class="track"><i class="genre" style="width:{{pct .Count $max}}%"></i></span><span class="val">{{.Count}}</span></li>
+        {{- end}}
+      </ul>
+      {{- else}}
+      <p class="empty">No genres yet. They arrive with the next sync.</p>
+      {{- end}}
+    </section>
+
+    <section class="card">
+      <h2>By release decade</h2>
+      <p class="hint">When the titles you watched came out.</p>
+      {{- if .Decades}}
+      <ul class="bars">
+        {{- $max := .MaxDecade}}
+        {{- range .Decades}}
+        <li><span class="lbl">{{.Decade}}s</span><span class="track"><i class="decade" style="width:{{pct .Count $max}}%"></i></span><span class="val">{{.Count}}</span></li>
+        {{- end}}
+      </ul>
+      {{- else}}
+      <p class="empty">No release years yet.</p>
+      {{- end}}
+    </section>
+
+    <section class="card wide">
+      <h2>Most rewatched films</h2>
+      {{- if .Rewatched}}
+      <ol class="rewatched">
+        {{- range .Rewatched}}
+        <li><span class="t">{{.Title}}{{if .Year}} <small>{{.Year}}</small>{{end}}</span><span class="n">{{.Plays}} times</span></li>
+        {{- end}}
+      </ol>
+      {{- else}}
+      <p class="empty">No film has been watched twice yet.</p>
+      {{- end}}
+    </section>
+  </div>
+  {{- if .Untimed}}
+  <p class="foot">Hours count titles with a known runtime. {{num .Untimed}} title{{if ne .Untimed 1}}s have{{else}} has{{end}} none yet; runtimes arrive with the next sync.</p>
+  {{- end}}
+  {{- end}}
+  {{- end}}
+</div>
+</body>
+</html>

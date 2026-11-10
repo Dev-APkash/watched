@@ -28,6 +28,9 @@ import (
 //go:embed index.html
 var indexHTML string
 
+//go:embed logbook.html
+var logbookHTML string
+
 // assetsFS holds the page's static artwork (the animated cabin backdrop and its still frame).
 //
 //go:embed assets
@@ -42,6 +45,21 @@ var tmplFuncs = template.FuncMap{
 		}
 		return t.Local().Format("Jan 2, 2006")
 	},
+	// pct is n as a whole percentage of most, for bar widths.
+	"pct": func(n, most int) int {
+		if most <= 0 {
+			return 0
+		}
+		return n * 100 / most
+	},
+	// num writes a count with thousands separators: 12,345.
+	"num": func(n int) string {
+		s := strconv.Itoa(n)
+		for i := len(s) - 3; i > 0 && s[i-1] != '-'; i -= 3 {
+			s = s[:i] + "," + s[i:]
+		}
+		return s
+	},
 	"json": func(v any) template.JS {
 		b, err := json.Marshal(v)
 		if err != nil {
@@ -51,7 +69,28 @@ var tmplFuncs = template.FuncMap{
 	},
 }
 
-var page = template.Must(template.New("index").Funcs(tmplFuncs).Parse(indexHTML))
+var (
+	page        = template.Must(template.New("index").Funcs(tmplFuncs).Parse(indexHTML))
+	logbookPage = template.Must(template.New("logbook").Funcs(tmplFuncs).Parse(logbookHTML))
+)
+
+// render executes a page template, preferring a copy of file on disk so the page can be
+// edited without a rebuild.
+func render(w http.ResponseWriter, tmpl *template.Template, file string, data any) {
+	if b, err := os.ReadFile(file); err == nil {
+		if parsed, err := template.New(tmpl.Name()).Funcs(tmplFuncs).Parse(string(b)); err == nil {
+			tmpl = parsed
+		}
+	}
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		slog.Error("render failed", "page", file, "err", err)
+		http.Error(w, "render failed", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(buf.Bytes())
+}
 
 type config struct {
 	url, apiKey, user string
@@ -370,14 +409,7 @@ func (a *app) routes() http.Handler {
 		st, imp, items, syncErr, importErr := a.st, a.imported, a.items, a.syncErr, a.importErr
 		a.mu.RUnlock()
 		movies, shows := counts(items)
-		var buf bytes.Buffer
-		tmpl := page
-		if b, err := os.ReadFile("index.html"); err == nil {
-			if parsed, err := template.New("index").Funcs(tmplFuncs).Parse(string(b)); err == nil {
-				tmpl = parsed
-			}
-		}
-		err := tmpl.Execute(&buf, map[string]any{
+		render(w, page, "index.html", map[string]any{
 			"Items": items, "Movies": movies, "Shows": shows,
 			"Synced": ago(st.LastSync), "Never": st.LastSync.IsZero() && len(items) == 0, "SyncErr": syncErr,
 			"Trakt": a.tr.clientID != "", "ImportUser": imp.User, "ImportCount": len(imp.Items),
@@ -385,13 +417,18 @@ func (a *app) routes() http.Handler {
 			"JellyfinURL": a.cfg.url, "SeerrURL": a.cfg.seerrURL, "User": a.cfg.user,
 			"Marks": pageMarks(a.marksSnapshot()),
 		})
-		if err != nil {
-			slog.Error("render failed", "err", err)
-			http.Error(w, "render failed", http.StatusInternalServerError)
-			return
+	})
+	mux.HandleFunc("GET /logbook", func(w http.ResponseWriter, r *http.Request) {
+		a.mu.RLock()
+		st, items := a.st, a.items
+		a.mu.RUnlock()
+		synced := ""
+		if !st.LastSync.IsZero() {
+			synced = ago(st.LastSync)
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(buf.Bytes())
+		render(w, logbookPage, "logbook.html", map[string]any{
+			"Log": buildLogbook(items), "User": a.cfg.user, "Synced": synced,
+		})
 	})
 	mux.HandleFunc("GET /api/items", func(w http.ResponseWriter, r *http.Request) {
 		a.mu.RLock()
