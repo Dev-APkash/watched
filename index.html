@@ -2234,8 +2234,15 @@ kbd {
     perRow = computePerRow();
     const list = visible();
     if (!list.length) {
-      shelvesEl.innerHTML = `<section class="shelf"><div class="shelf-back"><div class="empty">Nothing on the shelf matches “${esc(view.q)}”.<br><button class="text-btn" type="button" id="clear-q">Clear the search</button></div></div><div class="plank"><div class="plank-top"></div><div class="plank-face"></div></div></section>`;
-      $('#clear-q').onclick = () => { $('#q').value = ''; view.q = ''; render(); };
+      // With a search, offer to clear it; with only a filter (e.g. Series when you've watched films only), offer Everything.
+      const msg = view.q
+        ? `Nothing on the shelf matches “${esc(view.q)}”.<br><button class="text-btn" type="button" id="clear-q">Clear the search</button>`
+        : `No ${view.filter === 'show' ? 'series' : 'films'} on the shelf yet.<br><button class="text-btn" type="button" id="clear-q">Show everything</button>`;
+      shelvesEl.innerHTML = `<section class="shelf"><div class="shelf-back"><div class="empty">${msg}</div></div><div class="plank"><div class="plank-top"></div><div class="plank-face"></div></div></section>`;
+      $('#clear-q').onclick = () => {
+        if (view.q) { clearTimeout(qT); $('#q').value = ''; view.q = ''; render(); }
+        else $('.seg button[data-filter="all"]').click(); // updates the toggle and re-renders
+      };
       return;
     }
     const rows = [];
