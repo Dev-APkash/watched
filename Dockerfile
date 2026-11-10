@@ -6,12 +6,13 @@ ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY go.mod ./
 COPY *.go index.html ./
+COPY assets ./assets
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/watched . \
  && mkdir /out/data
 
 FROM gcr.io/distroless/static-debian13:nonroot
 LABEL org.opencontainers.image.title="Watched" \
-      org.opencontainers.image.description="A tiny self-hosted poster grid of everything you've watched on Jellyfin" \
+      org.opencontainers.image.description="Everything you've watched on Jellyfin, as a 3D shelf of cases in a cozy cabin. Self-hosted, no accounts" \
       org.opencontainers.image.licenses="MIT"
 COPY --from=build /out/watched /watched
 # Owned by the nonroot user so a fresh named volume mounted here is writable.

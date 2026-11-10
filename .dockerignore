@@ -2,4 +2,5 @@
 !go.mod
 !*.go
 !index.html
+!assets
 *_test.go

@@ -5,3 +5,14 @@
 # Local config and runtime data
 .env
 /data/
+
+# Local session context notes (keep local unless explicitly pushed)
+/CONTEXT.md
+/PRODUCT.md
+
+# Local-only working folders (backups, tool caches, design-tool state, editor settings)
+/snapshots/
+/.cache/
+/.tmp/
+/.impeccable/
+/.vscode/

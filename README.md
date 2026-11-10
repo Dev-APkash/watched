@@ -1,16 +1,18 @@
 # Watched
 
-**Everything you've watched on Jellyfin, as one poster wall.** Tiny, self-hosted, no accounts.
+**Everything you've watched on Jellyfin, as a shelf of cases in a cozy cabin.** Self-hosted, no accounts.
 
 [![CI](https://github.com/Dev-APkash/watched/actions/workflows/ci.yml/badge.svg)](https://github.com/Dev-APkash/watched/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Dev-APkash/watched)](https://github.com/Dev-APkash/watched/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-![Watched showing a grid of posters with watched badges and episode progress](docs/screenshot.png)
+![Watched: an illustrated cabin with rain on the window and a fire going, a cream control bar, and a wooden bookcase of film cases](docs/screenshot.png)
 
-<sub>Demo data. Titles and artwork are made up.</sub>
+<sub>The built-in sample shelf. Covers are generated, not real artwork.</sub>
 
-Watched reads the watch history that's already in your Jellyfin server and turns it into a single page. You get a poster, title, year and **Watched** badge for every movie, the date you last watched it, and episode progress for every show you've started. It runs as one small container next to Jellyfin.
+Watched reads the watch history that's already in your Jellyfin server and puts it on a bookcase. Every movie and show you've watched becomes a case on the shelf. Pull one off to turn it over in 3D, read the back cover, open it, spin the disc, rate it and write liner notes. Then stream it in Jellyfin. It runs as one small container next to Jellyfin.
+
+> **Two editions.** This is **Watched 2**, the full shelf. Looking for the tiny poster wall? **[Watched 1 (lite)](https://github.com/Dev-APkash/watched/tree/v1)** is still maintained as the lightweight edition: `ghcr.io/dev-apkash/watched:1`. See [Versions](#versions).
 
 ## Why Watched?
 
@@ -19,34 +21,42 @@ Watched reads the watch history that's already in your Jellyfin server and turns
 Most "what have I watched" tools need you to sign up for a tracking service, connect your media server to it, and hand your viewing history to a third party. Watched doesn't.
 
 - **Your history stays on your server.** Jellyfin already records what you've watched; Watched just shows it. There's nothing to sign up for and nothing to scrobble.
-- **No telemetry, analytics or phoning home.** Watched talks only to your Jellyfin server, plus Trakt *only* if you click the optional one-time import.
-- **Your browser loads nothing from the internet.** No CDNs, web fonts, trackers or third-party scripts. Posters are cached on your server and served by Watched itself, so your browser never contacts Jellyfin and your API key never leaves the server.
+- **No telemetry, analytics or phoning home.** Watched talks only to your Jellyfin server, plus Trakt *only* if you use the optional import.
+- **Your browser loads nothing from the internet.** Fonts, artwork and posters are all served by Watched itself. No CDNs, trackers or third-party scripts, so your browser never contacts Jellyfin and your API key never leaves the server.
+- **Ratings and liner notes stay in your browser.** They're saved in the browser's local storage, not sent anywhere.
 
-### Lightweight
+### Still small
 
 | | |
 |---|---|
-| Image download | ~5 MB (multi-arch: `amd64`, `arm64`, so Raspberry Pi works) |
-| Memory at idle | ~5 MB |
+| Image download | ~6 MB (multi-arch: `amd64`, `arm64`, so Raspberry Pi works) |
+| Memory at idle | a few MB |
 | Dependencies | none: Go standard library only, one static binary |
 | Database | none: one JSON file |
-| Frontend | one server-rendered page, ~40 lines of plain JavaScript, no framework or build step |
-| Posters | ~6 KB each (200 px JPEG), lazy-loaded |
+| Frontend | one server-rendered page with plain CSS 3D and JavaScript, no framework or build step |
 
 The container runs as an unprivileged user on a [distroless](https://github.com/GoogleContainerTools/distroless) base image, which has no shell or package manager.
 
 ## Features
 
-- Poster grid of every watched movie and show, sorted by most recently watched or A–Z
-- Shows appear once you've watched an episode, with progress like `12 / 24 episodes`, and are marked **Completed** when you've seen them all
-- Filter (All / Movies / Shows) and instant title search
-- Phone and desktop layouts, dark theme
-- **Hide libraries** you don't want on the wall (for example adult content or home videos)
-- **Coming from Trakt?** Paste your profile link once to bring your old history along
-- Background sync every 30 minutes, plus a **Refresh now** button
-- If Jellyfin is down, keeps showing the last synced data
+- **A shelf of cases.** Every watched movie and show stands on a wooden bookcase in an animated, illustrated log cabin: rain on the window, the fire going, steam off the kettle. Shelves are labelled by when you watched what's on them.
+- **Pick up any case.** It comes off the shelf in 3D. Drag to spin it, scroll to turn it, and press **B** to flip to the back cover with the synopsis, watch facts, episode progress and a barcode.
+- **Open it up.** Press **O** to swing the lid open, read the liner notes inside, and pop the disc out to spin it. Sounds are synthesized in the browser (off by default).
+- **Rate and annotate.** Give a title stars and write liner notes. Both stay in sync between the side panel and the case itself.
+- **Watch it.** **Stream on Jellyfin** opens the title in your Jellyfin. There's a trailer search link too.
+- **More like this.** Recommendations link to your [Jellyseerr / Seerr](#jellyseerr--seerr) so you can request them.
+- Shows appear once you've watched an episode, with progress like `12 / 24 episodes`, and are marked complete when you've seen them all.
+- Filter (Everything / Films / Series), sort by recently watched, title or release year, and search instantly. **Pick one for me** pulls a random case.
+- Keyboard: `[` and `]` step through the shelf, arrow keys turn the case, `F` / `B` / `S` show the front / back / spine, `Space` or `Esc` puts it back.
+- Phone and desktop layouts. Respects *reduce motion*: the backdrop becomes a still picture.
+- **Hide libraries** you don't want on the shelf (for example adult content or home videos).
+- **Coming from Trakt?** Paste your profile link once to bring your old history along.
+- Background sync every 30 minutes, plus a **Sync now** button. If Jellyfin is down, it keeps showing the last synced data.
 
-<img src="docs/screenshot-mobile.png" alt="Watched on a phone" width="260">
+<p>
+  <img src="docs/screenshot-stage.png" alt="A case lifted off the shelf in 3D, with synopsis, cast, rating and notes on the left and watch links and recommendations on the right" width="620">
+  <img src="docs/screenshot-mobile.png" alt="Watched on a phone" width="200">
+</p>
 
 ## Quick start
 
@@ -67,7 +77,7 @@ and a `docker-compose.yml`:
 ```yaml
 services:
   watched:
-    image: ghcr.io/dev-apkash/watched:1
+    image: ghcr.io/dev-apkash/watched:2
     container_name: watched
     restart: unless-stopped
     ports:
@@ -98,7 +108,7 @@ docker run -d --name watched \
   -e JELLYFIN_USER=yourname \
   -v watched-data:/data \
   --restart unless-stopped \
-  ghcr.io/dev-apkash/watched:1
+  ghcr.io/dev-apkash/watched:2
 ```
 
 > **Windows PowerShell:** the trailing `\` line continuations are for Linux and macOS shells. In PowerShell, put the whole command on one line or end each line with a backtick (`` ` ``) instead.
@@ -108,7 +118,7 @@ docker run -d --name watched \
 This connects to Jellyfin, prints what it found, and exits:
 
 ```sh
-docker run --rm --env-file .env ghcr.io/dev-apkash/watched:1 -check
+docker run --rm --env-file .env ghcr.io/dev-apkash/watched:2 -check
 ```
 
 ```
@@ -129,7 +139,7 @@ Jellyfin API keys have administrator access, so treat the key like a password. W
 
 ## Configuration
 
-All configuration is done with environment variables.
+All configuration is done with environment variables. Outside Docker, Watched also reads a `.env` file in its working directory; real environment variables take precedence.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
@@ -137,11 +147,12 @@ All configuration is done with environment variables.
 | `JELLYFIN_API_KEY` | yes | | API key from **Dashboard → API Keys** |
 | `JELLYFIN_USER` | yes | | Jellyfin username whose history to show (case-insensitive) |
 | `EXCLUDE_LIBRARIES` | no | | Comma-separated library names to leave out, e.g. `Adult,Home Videos` |
+| `SEERR_URL` | no | | Your Jellyseerr / Seerr address for "More like this" links, e.g. `http://localhost:5055`. `JELLYSEERR_URL` also works |
 | `REFRESH_MINUTES` | no | `30` | How often to sync with Jellyfin in the background |
 | `PORT` | no | `8080` | Port the page listens on |
 | `TZ` | no | `UTC` | Time zone for displayed dates, e.g. `Europe/Berlin` |
 | `TRAKT_CLIENT_ID` | no | built in | Use your own Trakt API app for the import, or `off` to remove the import option |
-| `DATA_DIR` | no | `/data` | Where data is stored. Only useful when running outside Docker |
+| `DATA_DIR` | no | `/data` (`data` on Windows) | Where data is stored. Only useful when running outside Docker |
 
 Watched checks its settings on startup. It exits with a clear message if a variable is missing or invalid, Jellyfin rejects the API key, or the user or an excluded library doesn't exist. If Jellyfin is only unreachable, Watched starts anyway, shows the last synced data and keeps retrying.
 
@@ -153,7 +164,22 @@ Set `EXCLUDE_LIBRARIES` to the library names as they appear on Jellyfin's home s
 EXCLUDE_LIBRARIES=Adult,Home Videos
 ```
 
-Anything you watched in those libraries is left off the page, and its cached posters are deleted. A misspelled name stops Watched with a list of the real library names, so a typo can never quietly show content you meant to hide.
+Anything you watched in those libraries is left off the shelf, and its cached posters are deleted. A misspelled name stops Watched with a list of the real library names, so a typo can never quietly show content you meant to hide.
+
+### Jellyseerr / Seerr
+
+Set `SEERR_URL` and every "More like this" recommendation opens its page in your Jellyseerr or Seerr, ready to request. You can also set or change the address from the page itself (**Connect Seerr** in the side panel); that choice is saved in your browser.
+
+### Your own backdrop
+
+The cabin artwork lives in `assets/`. To use a different scene, put your own `cabin.webp` (animated is fine) and `cabin-still.jpg` (shown when *reduce motion* is on) next to the binary in an `assets/` folder, or mount them into the container:
+
+```yaml
+    volumes:
+      - watched-data:/data
+      - ./my-scene.webp:/assets/cabin.webp:ro
+      - ./my-scene.jpg:/assets/cabin-still.jpg:ro
+```
 
 ## Coming from Trakt
 
@@ -162,16 +188,16 @@ If you used [Trakt](https://trakt.tv) to track what you watched before moving to
 1. On the Watched page, click **Import from Trakt**.
 2. Paste your profile link, e.g. `https://trakt.tv/users/yourname`, and click **Import**.
 
-Your Trakt movies and shows join the grid. A title you watched both in Jellyfin and on Trakt appears once, matched by IMDb, TMDB or TVDB id, with the latest watch date and the episodes from both combined.
+Your Trakt movies and shows join the shelf. A title you watched both in Jellyfin and on Trakt appears once, matched by IMDb, TMDB or TVDB id, with the latest watch date and the episodes from both combined.
 
 - **Your profile must be public** while you import. If it's private, turn off *private* in your Trakt settings, import, then turn it back on.
-- **It's a one-time snapshot, not a sync.** After switching to Jellyfin, you don't need Trakt any more. You can import again at any time; a new import replaces the old one.
+- **Imports refresh with each sync.** Once you've imported a profile, every background sync and **Sync now** also refreshes it from Trakt while the profile is public. A new import replaces the old one.
 - Large histories take a moment: about 2 minutes for a profile with 2,500 titles and 65,000 episode plays.
 - To remove an import, delete `trakt.json` from the data volume and restart Watched.
 
 ## Your data and privacy
 
-Everything Watched stores lives in the `/data` volume:
+Everything Watched stores on the server lives in the `/data` volume:
 
 | File | What it is |
 |---|---|
@@ -179,12 +205,14 @@ Everything Watched stores lives in the `/data` volume:
 | `trakt.json` | Your Trakt import, if you made one |
 | `posters/` | One small image per title. Posters of titles you no longer have are deleted on each sync |
 
+Your star ratings, liner notes, sound setting and Seerr address are stored in your browser's local storage (keys starting with `watched.`), so they're per browser and never leave it.
+
 Network requests Watched makes:
 
-- **Your Jellyfin server**: on startup, every `REFRESH_MINUTES`, and when you click **Refresh now**
-- **Trakt** (`api.trakt.tv` and its image CDN): only while an import you started is running
+- **Your Jellyfin server**: on startup, every `REFRESH_MINUTES`, and when you click **Sync now**
+- **Trakt** (`api.trakt.tv` and its image CDN): while an import you started is running, and on syncs after you've imported a profile
 
-That's all. There's no telemetry or update check.
+That's all. There's no telemetry or update check. The page itself only loads from Watched; the trailer and Seerr links open other sites only when you click them.
 
 The page has no login, which suits a home network. If you expose it to the internet, put it behind your reverse proxy's authentication. Anyone who can open the page can also start a Trakt import; set `TRAKT_CLIENT_ID=off` if you don't want that.
 
@@ -192,16 +220,23 @@ The container runs as user `65532`. Named volumes just work. If you bind-mount a
 
 ## Versions
 
-Releases follow [semantic versioning](https://semver.org). Each release is published as `ghcr.io/dev-apkash/watched:<version>`, plus `:1` (latest 1.x.x) and `:latest`.
+Releases follow [semantic versioning](https://semver.org) and are published as `ghcr.io/dev-apkash/watched:<version>`.
 
-- **Version 1 is stable.** Pin `:1` to get fixes without surprises.
-- New features will ship in **version 2**. `:latest` will move to it, `:1` won't.
+| Edition | Image | Source | What it is |
+|---|---|---|---|
+| **Watched 2** (current) | `:2`, `:latest` | [`main`](https://github.com/Dev-APkash/watched) | The cabin shelf with 3D cases, ratings, notes and Seerr links |
+| **Watched 1 (lite)** | `:1` | [`v1` branch](https://github.com/Dev-APkash/watched/tree/v1) | The original tiny poster wall: ~5 MB image, ~40 lines of JavaScript, no artwork |
+
+Both read the same `/data` volume, so you can switch between them in either direction. Pin `:2` or `:1` to stay on an edition; `:latest` follows the current one.
 
 ## Endpoints
 
 | Path | Description |
 |---|---|
 | `GET /` | The page |
+| `GET /api/items` | The merged watch list as JSON |
+| `GET /posters/{name}` | Cached poster images |
+| `GET /assets/{name}` | Backdrop artwork and fonts |
 | `POST /refresh` | Sync with Jellyfin now |
 | `POST /import-trakt` | Import a public Trakt profile (form field `profile`) |
 | `GET /health` | Returns `ok`; used by the image's built-in Docker `HEALTHCHECK` |
@@ -221,7 +256,9 @@ JELLYFIN_URL=http://localhost:8096 JELLYFIN_API_KEY=... JELLYFIN_USER=yourname D
 
 Or build the image: `docker build -t watched .`
 
-**Why Go?** It compiles to a single static binary with an HTTP server, HTML templates and JSON built in, so the image is just that binary (with the page embedded in it) on a distroless base.
+To build the lite edition, check out the `v1` branch first.
+
+**Why Go?** It compiles to a single static binary with an HTTP server, HTML templates and JSON built in, so the image is just that binary (with the page, fonts and artwork embedded in it) on a distroless base.
 
 ## FAQ / troubleshooting
 
@@ -265,22 +302,37 @@ Watched counts episodes Jellyfin has marked as *played* for that user. Jellyfin 
 
 ### A title appears twice after a Trakt import
 
-Titles are matched by IMDb, TMDB and TVDB ids. If Jellyfin couldn't identify a movie or show, there's nothing to match on. Fix the item in Jellyfin with **Identify**, then click **Refresh now**.
+Titles are matched by IMDb, TMDB and TVDB ids. If Jellyfin couldn't identify a movie or show, there's nothing to match on. Fix the item in Jellyfin with **Identify**, then click **Sync now**.
 
 ### Trakt import: "profile is private" or "user not found"
 
 Use your *profile* link (`https://trakt.tv/users/<name>`), not a movie or list page, and make sure the profile is public while importing.
 
+### My ratings and notes disappeared
+
+They live in the browser you wrote them in. A different browser, a private window, or clearing site data starts fresh.
+
+### The page feels heavy on an old device
+
+Turn on your system's *reduce motion* setting to swap the animated backdrop for a still picture, or run [Watched 1 (lite)](https://github.com/Dev-APkash/watched/tree/v1) against the same data.
+
 ### Can it run behind a reverse proxy on a sub-path?
 
 Yes. All links on the page are relative, so proxying `https://example.com/watched/` to Watched works without extra configuration.
 
+## Credits
+
+- **Cabin backdrop:** illustration by **alvirtual**, used with credit: [ArtStation](https://alvirtual8.artstation.com) · [Instagram](https://www.instagram.com/alvirtual) · [X / Twitter](https://twitter.com/alvirtual00). The artwork belongs to the artist and is **not** covered by this project's MIT license. Please don't reuse it outside Watched without the artist's permission.
+- **Fonts:** Young Serif, Figtree, Caveat, Bodoni Moda, Azeret Mono and Schibsted Grotesk, all under the SIL Open Font License 1.1 ([`assets/OFL.txt`](assets/OFL.txt)).
+
 ## For maintainers
 
-Pushing a tag like `v1.2.3` makes GitHub Actions run the tests, build `linux/amd64` and `linux/arm64` images, and push them to GHCR as `1.2.3`, `1.2`, `1` and `latest`. Pull requests and pushes to `main` run the tests and a build without publishing.
+Pushing a tag like `v2.1.0` makes GitHub Actions run the tests, build `linux/amd64` and `linux/arm64` images, and push them to GHCR as `2.1.0`, `2.1`, `2` and `latest`. Pull requests and pushes to `main` run the tests and a build without publishing.
+
+Lite-edition fixes go on the `v1` branch and are tagged `v1.0.x`. Note that the workflow also moves `latest` on those tags, so re-tag the newest v2 release afterwards (or adjust the workflow) to keep `latest` on Watched 2.
 
 The Trakt import uses this project's Trakt API app. Its client ID in [`trakt.go`](trakt.go) is public by design; the app's client secret isn't used and must never be committed.
 
 ## License
 
-[MIT](LICENSE)
+Code: [MIT](LICENSE). The cabin artwork in `assets/cabin.webp` and `assets/cabin-still.jpg` is by alvirtual and excluded from the MIT license; see [Credits](#credits).

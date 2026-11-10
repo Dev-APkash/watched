@@ -79,12 +79,16 @@ func (e *traktError) Error() string {
 // It waits and retries when Trakt's rate limit is hit.
 func (t *trakt) page(ctx context.Context, path, user string, page int, out any) (pages int, err error) {
 	u := fmt.Sprintf("%s%s&page=%d&limit=250", t.baseURL, path, page)
+	if strings.Contains(t.baseURL, "trakt.tv") {
+		u += fmt.Sprintf("&_=%d", time.Now().Unix()/5)
+	}
 	for attempt := 0; ; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 		if err != nil {
 			return 0, err
 		}
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Cache-Control", "no-cache")
 		req.Header.Set("User-Agent", "Watched")
 		req.Header.Set("trakt-api-version", "2")
 		req.Header.Set("trakt-api-key", t.clientID)
@@ -183,39 +187,52 @@ func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 		return nil, err
 	}
 
-	// The watched-shows list has the totals but no longer includes which episodes
-	// were watched or posters, so those come from the episode history.
+	// The watched-shows list has the totals; episode history provides per-episode
+	// progress and posters when available. Shows marked watched without episode
+	// history rows fall back to the play counts from watched-shows.
 	type show struct {
+		Plays         int        `json:"plays"`
 		LastWatchedAt time.Time  `json:"last_watched_at"`
 		ResetAt       *time.Time `json:"reset_at"` // set when the user started re-watching
 		Show          traktMedia
 	}
 	shows := map[int]*show{}
+	posters := map[int][]string{}
 	var order []int
 	err = each(ctx, t, u+"/watched/shows?extended=images", user, func(s show) {
-		shows[s.Show.IDs.Trakt] = &s
-		order = append(order, s.Show.IDs.Trakt)
+		id := s.Show.IDs.Trakt
+		shows[id] = &s
+		order = append(order, id)
+		if len(s.Show.Images.Poster) > 0 {
+			posters[id] = s.Show.Images.Poster
+		}
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	episodes := map[int]map[string]bool{}
-	posters := map[int][]string{}
+	inHistory := map[int]bool{}
 	err = each(ctx, t, u+"/history/episodes?extended=images", user, func(h struct {
 		WatchedAt time.Time `json:"watched_at"`
 		Episode   struct{ Season, Number int }
 		Show      traktMedia
 	}) {
-		s := shows[h.Show.IDs.Trakt]
-		if s == nil || h.Episode.Season == 0 || // specials aren't part of aired_episodes
-			s.ResetAt != nil && h.WatchedAt.Before(*s.ResetAt) {
+		id := h.Show.IDs.Trakt
+		s := shows[id]
+		if s == nil {
 			return
 		}
-		id := h.Show.IDs.Trakt
+		inHistory[id] = true
+		if len(posters[id]) == 0 && len(h.Show.Images.Poster) > 0 {
+			posters[id] = h.Show.Images.Poster
+		}
+		if h.Episode.Season == 0 || // specials aren't part of aired_episodes
+			s.ResetAt != nil && h.WatchedAt.Year() > 1970 && h.WatchedAt.Before(*s.ResetAt) {
+			return
+		}
 		if episodes[id] == nil {
 			episodes[id] = map[string]bool{}
-			posters[id] = h.Show.Images.Poster
 		}
 		episodes[id][epKey(h.Episode.Season, h.Episode.Number)] = true
 	})
@@ -225,8 +242,11 @@ func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 
 	for _, id := range order {
 		s, eps := shows[id], episodes[id]
-		if len(eps) == 0 {
+		if len(eps) == 0 && (inHistory[id] || s.Plays == 0) {
 			continue
+		}
+		if len(posters[id]) == 0 && strings.Contains(t.baseURL, "trakt.tv") && id > 0 {
+			posters[id] = []string{fmt.Sprintf("media.trakt.tv/shows/%d/medium/poster.webp", id)}
 		}
 		s.Show.Images.Poster = posters[id]
 		e := s.Show.entry("show", s.LastWatchedAt)
@@ -234,7 +254,14 @@ func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 			e.Episodes = append(e.Episodes, k)
 		}
 		slices.Sort(e.Episodes)
-		e.Played, e.Total = len(eps), max(s.Show.AiredEpisodes, len(eps))
+		played := len(eps)
+		if played == 0 {
+			played = s.Plays
+			if s.Show.AiredEpisodes > 0 && played > s.Show.AiredEpisodes {
+				played = s.Show.AiredEpisodes
+			}
+		}
+		e.Played, e.Total = played, max(s.Show.AiredEpisodes, played)
 		out = append(out, e)
 	}
 	sortRecent(out)

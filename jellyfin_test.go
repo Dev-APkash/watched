@@ -214,6 +214,7 @@ func TestSyncPosters(t *testing.T) {
 }
 
 func TestLoadConfig(t *testing.T) {
+	t.Chdir(t.TempDir()) // keep a developer's real .env out of the test
 	for _, k := range []string{"JELLYFIN_URL", "JELLYFIN_API_KEY", "JELLYFIN_USER", "REFRESH_MINUTES", "PORT"} {
 		t.Setenv(k, "")
 	}

@@ -4,7 +4,8 @@ package main
 import (
 	"bytes"
 	"context"
-	_ "embed"
+	"embed"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -27,7 +28,12 @@ import (
 //go:embed index.html
 var indexHTML string
 
-var page = template.Must(template.New("index").Funcs(template.FuncMap{
+// assetsFS holds the page's static artwork (the animated cabin backdrop and its still frame).
+//
+//go:embed assets
+var assetsFS embed.FS
+
+var tmplFuncs = template.FuncMap{
 	"lower": strings.ToLower,
 	"iso":   func(t time.Time) string { return t.UTC().Format(time.RFC3339) },
 	"date": func(t time.Time) string {
@@ -36,7 +42,16 @@ var page = template.Must(template.New("index").Funcs(template.FuncMap{
 		}
 		return t.Local().Format("Jan 2, 2006")
 	},
-}).Parse(indexHTML))
+	"json": func(v any) template.JS {
+		b, err := json.Marshal(v)
+		if err != nil {
+			return "[]"
+		}
+		return template.JS(b)
+	},
+}
+
+var page = template.Must(template.New("index").Funcs(tmplFuncs).Parse(indexHTML))
 
 type config struct {
 	url, apiKey, user string
@@ -45,6 +60,7 @@ type config struct {
 	dataDir           string
 	excludeLibs       []string
 	traktClientID     string
+	seerrURL          string
 }
 
 func envOr(key, def string) string {
@@ -54,16 +70,50 @@ func envOr(key, def string) string {
 	return def
 }
 
+func loadDotEnv(path string) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			k := strings.TrimSpace(parts[0])
+			v := strings.TrimSpace(parts[1])
+			v = strings.Trim(v, `"'`)
+			if os.Getenv(k) == "" {
+				os.Setenv(k, v)
+			}
+		}
+	}
+}
+
+func defaultDataDir() string {
+	if v := os.Getenv("DATA_DIR"); v != "" {
+		return v
+	}
+	if os.PathSeparator == '\\' {
+		return "data"
+	}
+	return "/data"
+}
+
 // loadConfig reads the environment and reports every problem at once.
 func loadConfig() (config, []string) {
+	loadDotEnv(".env")
 	c := config{
 		url:     strings.TrimRight(envOr("JELLYFIN_URL", ""), "/"),
 		apiKey:  envOr("JELLYFIN_API_KEY", ""),
 		user:    envOr("JELLYFIN_USER", ""),
 		port:    envOr("PORT", "8080"),
-		dataDir: envOr("DATA_DIR", "/data"),
+		dataDir: defaultDataDir(),
 		// The built-in client ID can be overridden, or set to "off" to disable Trakt import.
 		traktClientID: envOr("TRAKT_CLIENT_ID", defaultTraktClientID),
+		seerrURL:      strings.TrimRight(envOr("SEERR_URL", envOr("JELLYSEERR_URL", "")), "/"),
 	}
 	if c.traktClientID == "off" {
 		c.traktClientID = ""
@@ -160,12 +210,12 @@ func (a *app) poster(ctx context.Context, e entry) (io.ReadCloser, error) {
 	return a.jf.poster(ctx, e.ID, e.PosterTag)
 }
 
-// refresh syncs with Jellyfin unless a sync just succeeded. Failures keep the cached data.
+// refresh syncs with Jellyfin (and Trakt if linked) unless a sync just succeeded. Failures keep the cached data.
 func (a *app) refresh(ctx context.Context) {
 	a.syncMu.Lock()
 	defer a.syncMu.Unlock()
 	a.mu.RLock()
-	fresh := time.Since(a.st.LastSync) < 10*time.Second
+	fresh := time.Since(a.st.LastSync) < 2*time.Second
 	a.mu.RUnlock()
 	if fresh {
 		return // e.g. a double-clicked Refresh button
@@ -186,11 +236,11 @@ func (a *app) refresh(ctx context.Context) {
 	a.mu.Lock()
 	a.syncErr = ""
 	a.mu.Unlock()
-	movies, shows := counts(a.st.Items)
+	movies, shows := counts(a.items)
 	slog.Info("sync complete", "movies", movies, "shows", shows, "took", time.Since(start).Round(time.Millisecond))
 }
 
-// sync fetches from Jellyfin and publishes the result. The caller must hold syncMu.
+// sync fetches from Jellyfin (and refreshes Trakt if a profile was imported) and publishes the result. The caller must hold syncMu.
 func (a *app) sync(ctx context.Context) error {
 	if a.userID == "" {
 		if err := a.connect(ctx); err != nil {
@@ -202,7 +252,18 @@ func (a *app) sync(ctx context.Context) error {
 		return err
 	}
 	st := state{User: a.cfg.user, LastSync: time.Now().UTC(), Items: items}
-	if err := a.publish(ctx, st, a.imported); err != nil {
+	imp := a.imported
+	if imp.User != "" && a.tr.clientID != "" {
+		if trItems, err := a.tr.watched(ctx, imp.User); err != nil {
+			slog.Warn("trakt refresh failed during sync", "user", imp.User, "err", err)
+		} else {
+			imp = traktImport{User: imp.User, ImportedAt: time.Now().UTC(), Items: trItems}
+			if err := saveJSON(a.traktPath(), imp); err != nil {
+				slog.Error("could not save trakt import", "err", err)
+			}
+		}
+	}
+	if err := a.publish(ctx, st, imp); err != nil {
 		return err
 	}
 	if err := saveJSON(a.statePath(), st); err != nil {
@@ -306,11 +367,18 @@ func (a *app) routes() http.Handler {
 		a.mu.RUnlock()
 		movies, shows := counts(items)
 		var buf bytes.Buffer
-		err := page.Execute(&buf, map[string]any{
+		tmpl := page
+		if b, err := os.ReadFile("index.html"); err == nil {
+			if parsed, err := template.New("index").Funcs(tmplFuncs).Parse(string(b)); err == nil {
+				tmpl = parsed
+			}
+		}
+		err := tmpl.Execute(&buf, map[string]any{
 			"Items": items, "Movies": movies, "Shows": shows,
 			"Synced": ago(st.LastSync), "Never": st.LastSync.IsZero() && len(items) == 0, "SyncErr": syncErr,
 			"Trakt": a.tr.clientID != "", "ImportUser": imp.User, "ImportCount": len(imp.Items),
 			"ImportAgo": ago(imp.ImportedAt), "ImportErr": importErr,
+			"JellyfinURL": a.cfg.url, "SeerrURL": a.cfg.seerrURL, "User": a.cfg.user,
 		})
 		if err != nil {
 			slog.Error("render failed", "err", err)
@@ -319,6 +387,36 @@ func (a *app) routes() http.Handler {
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(buf.Bytes())
+	})
+	mux.HandleFunc("GET /api/items", func(w http.ResponseWriter, r *http.Request) {
+		a.mu.RLock()
+		st, imp, items, syncErr := a.st, a.imported, a.items, a.syncErr
+		a.mu.RUnlock()
+		movies, shows := counts(items)
+		type itemDTO struct {
+			entry
+			Poster    string `json:"poster"`
+			Completed bool   `json:"completed"`
+		}
+		dtos := make([]itemDTO, len(items))
+		for i, e := range items {
+			dtos[i] = itemDTO{
+				entry:     e,
+				Poster:    e.Poster(),
+				Completed: e.Completed(),
+			}
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		json.NewEncoder(w).Encode(map[string]any{
+			"user":        a.cfg.user,
+			"jellyfinUrl": a.cfg.url,
+			"synced":      ago(st.LastSync),
+			"syncErr":     syncErr,
+			"movies":      movies,
+			"shows":       shows,
+			"traktUser":   imp.User,
+			"items":       dtos,
+		})
 	})
 	mux.HandleFunc("POST /refresh", func(w http.ResponseWriter, r *http.Request) {
 		a.refresh(context.WithoutCancel(r.Context()))
@@ -356,6 +454,26 @@ func (a *app) routes() http.Handler {
 		// File names include the image's tag, so a changed poster gets a new URL.
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		http.ServeFile(w, r, filepath.Join(a.postersDir(), name))
+	})
+	mux.HandleFunc("GET /assets/{name}", func(w http.ResponseWriter, r *http.Request) {
+		name := r.PathValue("name")
+		if name != filepath.Base(name) || strings.HasPrefix(name, ".") {
+			http.NotFound(w, r)
+			return
+		}
+		switch filepath.Ext(name) {
+		case ".woff2":
+			w.Header().Set("Content-Type", "font/woff2")
+		case ".css":
+			w.Header().Set("Content-Type", "text/css; charset=utf-8")
+		}
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		// Like index.html, prefer a copy on disk so the artwork can be swapped without a rebuild.
+		if fi, err := os.Stat(filepath.Join("assets", name)); err == nil && !fi.IsDir() {
+			http.ServeFile(w, r, filepath.Join("assets", name))
+			return
+		}
+		http.ServeFileFS(w, r, assetsFS, "assets/"+name)
 	})
 	// Reject form posts made by other websites (CSRF); same-origin and non-browser requests pass.
 	return http.NewCrossOriginProtection().Handler(mux)

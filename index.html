@@ -3,129 +3,3063 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<link rel="icon" href="data:,">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='10' y='4' width='44' height='56' rx='6' fill='%23f7e7cf' stroke='%233b2218' stroke-width='4'/><rect x='17' y='11' width='30' height='42' rx='3' fill='%23e57a35' stroke='%233b2218' stroke-width='3'/></svg>">
 <title>Watched</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="preload" as="image" href="assets/cabin.webp" media="(prefers-reduced-motion: no-preference)">
 <style>
-:root { --bg:#0f1115; --card:#1a1d24; --text:#e6e8ec; --muted:#8b92a0; --accent:#4f8cff; --ok:#2f9e5d; --done:#7b5cff; --warn:#e0a030 }
-* { box-sizing:border-box }
-body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif }
-header { position:sticky; top:0; z-index:1; background:var(--bg); padding:12px 16px; border-bottom:1px solid #222631; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center }
-h1 { margin:0; font-size:20px }
-.meta { color:var(--muted); font-size:12px; flex:1 }
-.warn { color:var(--warn) }
-.controls { display:flex; flex-wrap:wrap; gap:8px; width:100% }
-button, select, input { font:inherit; color:var(--text); background:var(--card); border:1px solid #2c313d; border-radius:6px; padding:6px 10px }
-button { cursor:pointer }
-button[aria-pressed=true] { background:var(--accent); border-color:var(--accent) }
-input[type=search] { flex:1; min-width:140px }
-form { margin:0 }
-main { padding:16px; display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)) }
-@media (max-width:480px) { main { gap:10px; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)) } }
-.card[hidden], #empty[hidden] { display:none }
-.poster { display:block; width:100%; aspect-ratio:2/3; object-fit:cover; border-radius:6px; background:var(--card) }
-.ph { display:flex; align-items:center; justify-content:center; text-align:center; padding:8px; color:var(--muted); font-size:13px }
-.title { margin:6px 0 0; font-size:13px; font-weight:600; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
-.sub { color:var(--muted); font-size:12px }
-.badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:11px; font-weight:600; color:#fff; background:var(--ok); margin-right:4px }
-.badge.done { background:var(--done) }
-.nw { white-space:nowrap }
-#empty { grid-column:1/-1; color:var(--muted); text-align:center; padding:48px 0 }
-details.import summary { cursor:pointer; color:var(--muted); font-size:13px }
-details.import[open] { width:100% }
-details.import form { display:flex; gap:8px; margin-top:8px }
-details.import input { flex:1; min-width:0 }
-.hint { color:var(--muted); font-size:12px; margin:6px 0 0 }
-p.warn { font-size:13px; margin:6px 0 0 }
+:root {
+  /* Cabin evening: colours lifted straight from the backdrop illustration */
+  --line: #3b2218;            /* the illustration's cocoa ink outline */
+  --line-soft: rgba(59, 34, 24, .2);
+  --cream: #f7e7cf;           /* lamplit rug / paper */
+  --cream-2: #efd7b6;
+  --cream-3: #e2c195;
+  --t1: #3b2218;              /* ink on cream, 13:1 */
+  --t2: #6a4634;              /* secondary ink on cream, 6.9:1 */
+  --t3: #7f5a46;              /* quiet ink on cream, 5:1 */
+  --wood-hi: #a46c47;
+  --wood: #7d4f35;
+  --wood-lo: #5e3a27;
+  --bay: #3b2419;
+  --bay-shade: #2a1810;
+  --sofa: #4a5890;            /* the couch */
+  --sofa-hi: #6b7bb8;
+  --ember: #e57a35;           /* the orange cushion */
+  --ember-hi: #f0964f;
+  --flame: #f6c453;           /* firelight */
+  --leaf: #6f9a4f;            /* the houseplants */
+  --rose: #dc9c8c;
+  --soft-shadow: 0 14px 30px -14px rgba(28, 12, 5, .7);
+
+  /* Printed paper stock + plastics used by the 3D case itself (unchanged) */
+  --paper: #f6f0e4;
+  --ink: #1b1713;
+  --ink-2: #52483e;
+  --ink-3: #665b4f;
+  --rule: rgba(27, 23, 19, .14);
+  --accent: #c8442b;
+  --plastic: #18171a;
+  --plastic-blue: #23589c;
+
+  /* Case typography (unchanged) */
+  --serif: "Bodoni Moda", Georgia, serif;
+  --sans: "Schibsted Grotesk", system-ui, sans-serif;
+  --mono: "Azeret Mono", ui-monospace, monospace;
+  --hand: "Caveat", "Segoe Print", cursive;
+  /* Room typography */
+  --display: "Young Serif", Georgia, serif;
+  --ui: "Figtree", system-ui, sans-serif;
+
+  --case-w: 124px;
+  --case-h: 174px;
+  --case-d: 13px;
+  --gap: 18px;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+}
+@media (max-width: 640px) {
+  :root { --case-w: 92px; --case-h: 129px; --case-d: 10px; --gap: 12px; }
+}
+@media (max-width: 440px) {
+  :root { --case-w: 82px; --case-h: 115px; --case-d: 9px; --gap: 10px; }
+}
+
+* { box-sizing: border-box; }
+::selection { background: var(--flame); color: var(--line); }
+html {
+  scrollbar-color: var(--wood-hi) var(--bay-shade);
+  caret-color: var(--ember);
+}
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track { background: var(--bay-shade); }
+::-webkit-scrollbar-thumb { background: var(--wood-hi); border-radius: 12px; border: 3px solid var(--bay-shade); }
+::-webkit-scrollbar-thumb:hover { background: var(--cream-3); }
+:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; border-radius: 6px; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  color: var(--cream);
+  font: 15px/1.5 var(--ui);
+  background: var(--bay-shade) url("assets/cabin-still.jpg") center / cover fixed no-repeat;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- The room: animated cabin backdrop ---------- */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.scene img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* firelight breathing over the whole room */
+.scene-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(55% 50% at 66% 48%, rgba(255, 170, 86, .14), rgba(255, 170, 86, 0) 70%);
+  mix-blend-mode: screen;
+  animation: firelight 3.4s steps(1, end) infinite;
+}
+@keyframes firelight {
+  0%   { opacity: .55; }
+  9%   { opacity: .8; }
+  17%  { opacity: .62; }
+  31%  { opacity: .95; }
+  42%  { opacity: .7; }
+  56%  { opacity: .88; }
+  68%  { opacity: .58; }
+  79%  { opacity: .9; }
+  91%  { opacity: .66; }
+}
+/* dim the edges so cards and the shelf read cleanly on top of the scene */
+.scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(34, 17, 9, .32) 0%, rgba(34, 17, 9, 0) 22%, rgba(34, 17, 9, 0) 56%, rgba(34, 17, 9, .55) 100%),
+    radial-gradient(130% 95% at 50% 45%, rgba(0, 0, 0, 0) 60%, rgba(26, 12, 6, .38) 100%);
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+kbd {
+  font: 700 11px/1 var(--ui);
+  padding: 3px 6px 4px;
+  border: 1.5px solid var(--line);
+  border-radius: 5px;
+  background: var(--cream-2);
+  color: var(--t1);
+  box-shadow: inset 0 -2px 0 rgba(59, 34, 24, .18);
+}
+
+/* ---------- Masthead: a sign hung on the cabin wall ---------- */
+.masthead {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 34px 28px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.nameplate {
+  position: relative;
+  max-width: 640px;
+  padding: 16px 24px 18px;
+  background: var(--cream);
+  color: var(--t1);
+  border: 2.5px solid var(--line);
+  border-radius: 14px;
+  box-shadow: inset 0 -5px 0 rgba(59, 34, 24, .1), var(--soft-shadow);
+}
+/* the nail and the string it hangs from */
+.nameplate::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  width: 150px;
+  height: 31px;
+  transform: translateX(-50%);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 31'%3E%3Cpath d='M4 31 75 5l71 26' fill='none' stroke='%233b2218' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='75' cy='5' r='4.5' fill='%23a46c47' stroke='%233b2218' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.np-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.np-head h1 {
+  margin: 0;
+  font: 400 50px/1 var(--display);
+  letter-spacing: -0.02em;
+  color: var(--t1);
+}
+.np-head .owner {
+  font: 600 25px/1 var(--hand);
+  color: var(--sofa);
+  transform: rotate(-3deg);
+  transform-origin: left center;
+}
+.sync {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 7px 7px 7px 14px;
+  background: var(--cream);
+  color: var(--t2);
+  border: 2.5px solid var(--line);
+  border-radius: 12px;
+  box-shadow: inset 0 -4px 0 rgba(59, 34, 24, .1), var(--soft-shadow);
+  font: 600 13px/1.3 var(--ui);
+}
+.sync-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--leaf);
+  border: 1.5px solid var(--line);
+  display: inline-block;
+  margin-right: 7px;
+  vertical-align: -1px;
+}
+.sync-dot.bad { background: var(--ember); }
+.sync form { margin: 0; }
+.text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 13px;
+  border: 2px solid var(--line);
+  border-radius: 9px;
+  background: var(--cream-2);
+  color: var(--t1);
+  cursor: pointer;
+  font: 700 13px/1.2 var(--ui);
+  box-shadow: inset 0 -3px 0 rgba(59, 34, 24, .16);
+  transition: background .2s, transform .2s var(--ease-out), box-shadow .2s;
+}
+.text-btn:hover { background: var(--flame); transform: translateY(-1px); }
+.text-btn:active { transform: translateY(1px); box-shadow: inset 0 -1px 0 rgba(59, 34, 24, .16); }
+.text-btn svg { width: 15px; height: 15px; color: var(--t1); }
+.trakt { position: relative; }
+.trakt summary { list-style: none; }
+.trakt summary::-webkit-details-marker { display: none; }
+.trakt[open] summary { background: var(--flame); }
+.trakt-pop {
+  position: absolute;
+  right: -9px;
+  top: calc(100% + 14px);
+  z-index: 60;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 16px;
+  background: var(--cream);
+  border: 2.5px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 40px -18px rgba(28, 12, 5, .8);
+  font: 500 13.5px/1.45 var(--ui);
+  color: var(--t1);
+}
+.trakt-pop p { margin: 0 0 10px; color: var(--t2); }
+.trakt-pop code { font: 600 12px/1 var(--mono); color: var(--t1); background: var(--cream-2); padding: 2px 5px; border-radius: 4px; }
+.trakt-pop form { display: flex; gap: 8px; }
+.trakt-pop input, .seerr-config input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 11px;
+  border: 2px solid var(--line);
+  border-radius: 9px;
+  background: #fffaf1;
+  color: var(--t1);
+  outline: 0;
+}
+.trakt-pop input:focus, .seerr-config input:focus { border-color: var(--sofa); box-shadow: 0 0 0 3px rgba(74, 88, 144, .25); }
+.trakt-pop input::placeholder, .seerr-config input::placeholder { color: var(--t3); }
+.trakt-pop .err { color: #a33a12; font-weight: 600; margin: 10px 0 0; }
+
+.ledger {
+  margin: 10px 0 0;
+  font: 500 16px/1.5 var(--ui);
+  color: var(--t2);
+  text-wrap: pretty;
+}
+.ledger b {
+  font: 800 16px/1 var(--ui);
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
+  /* a quick highlighter swipe */
+  background: linear-gradient(180deg, transparent 55%, rgba(246, 196, 83, .75) 55%, rgba(246, 196, 83, .75) 92%, transparent 92%);
+}
+.ledger .note {
+  display: block;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1.5px dashed var(--line-soft);
+  font: 500 13px/1.5 var(--ui);
+  color: var(--t3);
+}
+
+/* ---------- Control bar: a cream plank that rides along while you scroll ---------- */
+.toolbar {
+  position: sticky;
+  top: 12px;
+  z-index: 40;
+  /* leave the fire and the couch in view on arrival; the shelf slides up over them */
+  margin-top: clamp(24px, calc(56vh - 196px), 360px);
+  padding: 0 20px;
+}
+.toolbar-in {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 9px 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  background: var(--cream);
+  color: var(--t1);
+  border: 2.5px solid var(--line);
+  border-radius: 16px;
+  box-shadow: inset 0 -5px 0 rgba(59, 34, 24, .1), var(--soft-shadow);
+  transition: box-shadow .3s var(--ease-out);
+}
+.toolbar.stuck .toolbar-in {
+  box-shadow: inset 0 -5px 0 rgba(59, 34, 24, .1), 0 22px 40px -16px rgba(20, 8, 3, .85);
+}
+.seg {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--cream-2);
+  border: 2px solid var(--line);
+}
+.seg button {
+  border: 0;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font: 700 13px/1.2 var(--ui);
+  color: var(--t2);
+  cursor: pointer;
+  transition: background .25s var(--ease-out), color .2s, box-shadow .25s;
+}
+.seg button[aria-pressed="true"] {
+  background: var(--sofa);
+  color: var(--cream);
+  box-shadow: inset 0 -3px 0 rgba(20, 24, 50, .35);
+}
+.seg button:not([aria-pressed="true"]):hover { color: var(--t1); background: rgba(255, 250, 241, .7); }
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 38px;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  background: #fffaf1;
+  font: 600 13.5px/1 var(--ui);
+  color: var(--t1);
+  transition: border-color .2s, box-shadow .2s;
+}
+.field:focus-within { border-color: var(--sofa); box-shadow: 0 0 0 3px rgba(74, 88, 144, .25); }
+.field svg { width: 16px; height: 16px; color: var(--t2); flex: none; }
+.field input, .field select {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--t1);
+  height: 100%;
+  min-width: 0;
+  font-weight: 600;
+}
+.field select { cursor: pointer; padding-right: 4px; }
+.field select option { background: var(--cream); color: var(--t1); }
+.field.search { flex: 1; min-width: 180px; max-width: 360px; }
+.field.search input { width: 100%; }
+.field input::placeholder { color: var(--t3); font-weight: 500; }
+.spacer { flex: 1; }
+.pick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 17px;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  background: var(--ember);
+  color: var(--line);
+  font: 800 13.5px/1 var(--ui);
+  cursor: pointer;
+  box-shadow: inset 0 -4px 0 rgba(90, 30, 5, .28), inset 0 2px 0 rgba(255, 220, 180, .45);
+  transition: transform .2s var(--ease-out), background .2s, box-shadow .2s;
+}
+.pick-btn:hover { background: var(--ember-hi); transform: translateY(-1px); }
+.pick-btn:active { transform: translateY(1px); box-shadow: inset 0 -1px 0 rgba(90, 30, 5, .28); }
+.pick-btn svg { width: 16px; height: 16px; stroke-width: 2.2; }
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  background: var(--cream-2);
+  color: var(--t1);
+  box-shadow: inset 0 -3px 0 rgba(59, 34, 24, .16);
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.icon-btn svg { width: 17px; height: 17px; }
+.icon-btn:hover { background: var(--flame); }
+.icon-btn[aria-pressed="true"] { background: var(--sofa); color: var(--cream); }
+
+/* ---------- The bookcase, drawn in the same hand as the room ---------- */
+.room { padding: 22px 20px 120px; }
+.bookcase {
+  max-width: 1240px;
+  margin: 0 auto;
+  position: relative;
+  filter: drop-shadow(0 34px 40px rgba(20, 8, 3, .6));
+}
+.bc-cap {
+  position: relative;
+  height: 26px;
+  margin: 0 -12px;
+  border: 3px solid var(--line);
+  border-radius: 9px 9px 4px 4px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='20'%3E%3Cpath d='M14 9c30-3 52 2 82-1M150 13c24-2 40 1 66-1' fill='none' stroke='%235e3a27' stroke-width='1.6' stroke-linecap='round' opacity='.7'/%3E%3C/svg%3E") 0 0 / 260px 20px repeat-x,
+    linear-gradient(180deg, var(--wood-hi) 0 45%, var(--wood) 45%);
+}
+.bc-body {
+  position: relative;
+  padding: 0 18px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='240'%3E%3Cpath d='M7 18c-1 30 1 52 0 80M11 140c1 24-1 40 0 70' fill='none' stroke='%235e3a27' stroke-width='1.5' stroke-linecap='round' opacity='.75'/%3E%3C/svg%3E") left top / 18px 240px repeat-y,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='240'%3E%3Cpath d='M9 60c1 30-1 52 0 80M6 170c-1 24 1 30 0 56' fill='none' stroke='%235e3a27' stroke-width='1.5' stroke-linecap='round' opacity='.75'/%3E%3C/svg%3E") right top / 18px 240px repeat-y,
+    var(--wood);
+  border-left: 3px solid var(--line);
+  border-right: 3px solid var(--line);
+}
+.bc-base {
+  position: relative;
+  height: 30px;
+  margin: 0 -6px;
+  border: 3px solid var(--line);
+  border-radius: 4px 4px 8px 8px;
+  background: linear-gradient(180deg, var(--wood) 0 40%, var(--wood-lo) 40%);
+}
+.bc-base::before, .bc-base::after {
+  content: "";
+  position: absolute;
+  bottom: -15px;
+  width: 34px;
+  height: 14px;
+  background: var(--wood-lo);
+  border: 3px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+}
+.bc-base::before { left: 26px; }
+.bc-base::after { right: 26px; }
+
+.shelf { position: relative; }
+.shelf-back {
+  position: relative;
+  /* cel-shaded: a hard shadow band under the shelf above, then the flat back panel */
+  background:
+    linear-gradient(180deg, var(--bay-shade) 0 26px, rgba(42, 24, 16, .55) 26px 38px, transparent 38px),
+    linear-gradient(90deg, rgba(42, 24, 16, .7) 0 14px, transparent 14px calc(100% - 14px), rgba(42, 24, 16, .7) calc(100% - 14px)),
+    var(--bay);
+  border-left: 3px solid var(--line);
+  border-right: 3px solid var(--line);
+  padding: 36px 26px 0;
+}
+.row {
+  display: flex;
+  gap: var(--gap);
+  align-items: flex-end;
+  perspective: 1400px;
+  min-height: var(--case-h);
+}
+.plank { position: relative; z-index: 2; }
+.plank-top {
+  height: 12px;
+  margin: 0;
+  background: var(--wood-hi);
+  border-left: 3px solid var(--line);
+  border-right: 3px solid var(--line);
+}
+.plank-face {
+  height: 28px;
+  margin: 0 -18px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='18'%3E%3Cpath d='M20 8c40-3 70 2 110-1M190 11c30-2 50 1 90-1' fill='none' stroke='%235e3a27' stroke-width='1.6' stroke-linecap='round' opacity='.75'/%3E%3C/svg%3E") 0 0 / 320px 18px repeat-x,
+    var(--wood);
+  border-top: 3px solid var(--line);
+  border-bottom: 3px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 40px;
+}
+.plank-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px 2px;
+  border-radius: 5px;
+  background: var(--cream);
+  border: 2px solid var(--line);
+  font: 800 10px/1.3 var(--ui);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+  transform: rotate(-1.5deg);
+  box-shadow: 0 4px 8px -4px rgba(20, 8, 3, .7);
+}
+.room-note {
+  align-self: center;
+  margin-left: 18px;
+  font: 600 25px/1 var(--hand);
+  color: var(--cream-3);
+  transform: rotate(-4deg);
+  white-space: nowrap;
+}
+
+/* ---------- Slots (cases on the shelf) ---------- */
+.slot {
+  position: relative;
+  flex: none;
+  width: var(--case-w);
+  height: var(--case-h);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  border-radius: 3px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.slot .box {
+  --w: var(--case-w);
+  --h: var(--case-h);
+  --d: var(--case-d);
+  transform: translateZ(var(--z, 0px));
+  transition: transform .45s var(--ease-out);
+}
+.slot:hover .box, .slot:focus-visible .box {
+  transform: translateZ(calc(var(--z, 0px) + 34px)) translateY(-10px) rotateX(var(--hx, 0deg)) rotateY(var(--hy, 0deg));
+  transition-duration: .3s;
+}
+.slot::after {
+  content: "";
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: -5px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, .82), transparent);
+  transition: opacity .3s, transform .3s var(--ease-out);
+}
+.slot:hover::after { opacity: .55; transform: scaleX(.85); }
+.slot.out .box { visibility: hidden; }
+.slot.out::after { opacity: 0; }
+.slot.out::before {
+  /* the gap a lifted case leaves behind */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255, 204, 134, .03), rgba(0, 0, 0, .45));
+  box-shadow: inset 0 0 0 1px rgba(216, 192, 154, .12), inset 0 8px 16px rgba(0, 0, 0, .55);
+}
+.slot.nudge .box { animation: nudge .6s var(--ease-out); }
+@keyframes nudge {
+  0% { transform: translateZ(0); }
+  30% { transform: translateZ(40px) translateY(-14px) rotateZ(-3deg); }
+  60% { transform: translateZ(30px) translateY(-10px) rotateZ(2deg); }
+  100% { transform: translateZ(34px) translateY(-10px); }
+}
+
+/* ---------- The 3D case ---------- */
+.box {
+  position: relative;
+  width: var(--w);
+  height: var(--h);
+  transform-style: preserve-3d;
+}
+.f {
+  position: absolute;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+.f::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: var(--shade, 0);
+  pointer-events: none;
+}
+.f-front, .f-back, .f-tray, .f-inner { inset: 0; border-radius: 3px; }
+.lid {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: 0 50%;
+  transform: translateZ(calc(var(--d) / 2));
+}
+.f-front { transform: translateZ(.6px); background: var(--plastic); container-type: size; }
+.f-inner { transform: rotateY(180deg) translateZ(.6px); }
+.f-back { transform: rotateY(180deg) translateZ(calc(var(--d) / 2)); container-type: size; }
+.f-tray { transform: translateZ(calc(var(--d) / 2 - 2px)); }
+.f-left, .f-right {
+  width: var(--d);
+  height: var(--h);
+  left: calc((var(--w) - var(--d)) / 2);
+}
+.f-left { transform: rotateY(-90deg) translateZ(calc(var(--w) / 2)); container-type: size; }
+.f-right {
+  transform: rotateY(90deg) translateZ(calc(var(--w) / 2));
+  background:
+    radial-gradient(ellipse 36% 11% at 50% 50%, rgba(0, 0, 0, .55) 0 65%, rgba(255, 255, 255, .08) 70% 82%, transparent 86%),
+    linear-gradient(90deg,
+      rgba(247, 242, 232, .35) 0 4%,
+      #2e2c30 5% 46%,
+      #09080a 48% 52%,
+      #252328 54% 95%,
+      rgba(247, 242, 232, .22) 96% 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), inset 0 -1px 0 rgba(0, 0, 0, .5);
+}
+.f-top, .f-bottom {
+  width: var(--w);
+  height: var(--d);
+  top: calc((var(--h) - var(--d)) / 2);
+  background: linear-gradient(180deg, #2c2b2f, var(--plastic));
+}
+.f-top { transform: rotateX(90deg) translateZ(calc(var(--h) / 2)); }
+.f-bottom { transform: rotateX(-90deg) translateZ(calc(var(--h) / 2)); }
+/* front insert under the clear sleeve */
+.art { position: absolute; inset: 3.5% 3.5% 3.5% 6%; overflow: hidden; border-radius: 1px; background: #222; pointer-events: none; }
+.art img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
+.sleeve {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 3px;
+  background:
+    linear-gradient(100deg, transparent calc(var(--gx, 38%) - 18%), rgba(255, 255, 255, .2) var(--gx, 38%), transparent calc(var(--gx, 38%) + 14%)),
+    linear-gradient(90deg, rgba(255, 255, 255, .12), transparent 7%, transparent 93%, rgba(0, 0, 0, .25));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12), inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+.hinge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6%;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='5'%3E%3Crect width='6' height='2' fill='%23ffffff' fill-opacity='.08'/%3E%3C/svg%3E"),
+    linear-gradient(90deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .3));
+  pointer-events: none;
+}
+
+/* spine */
+.spine {
+  position: absolute;
+  inset: 0;
+  background: var(--sp, #2a2622);
+  color: var(--sf, #f7f2e8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7cqw 0 9cqw;
+  box-shadow: inset 2px 0 0 rgba(255, 255, 255, .12), inset -2px 0 0 rgba(0, 0, 0, .25);
+}
+.spine .sp-title {
+  writing-mode: vertical-rl;
+  font: 400 62cqw/1 var(--serif);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 72cqh;
+  flex: 1;
+  margin: 10cqw 0;
+}
+.spine .sp-no, .spine .sp-yr {
+  font: 500 34cqw/1 var(--mono);
+  writing-mode: vertical-rl;
+  opacity: .8;
+}
+
+/* generated covers for titles without a poster */
+.gen {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+}
+.gen .g-title {
+  position: absolute;
+  font: 400 13cqw/0.95 var(--serif);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.gen .g-year { position: absolute; font: 500 4.4cqw/1 var(--mono); letter-spacing: .08em; }
+.gen .g-by { position: absolute; font: 600 4cqw/1.2 var(--sans); letter-spacing: .14em; text-transform: uppercase; }
+.gen .g-mark { position: absolute; }
+/* 0: sun */
+.gen-0 .g-mark { width: 74cqw; height: 74cqw; border-radius: 50%; background: var(--ac); left: 13cqw; top: 14cqw; }
+.gen-0 .g-title { left: 8cqw; right: 8cqw; bottom: 16cqw; }
+.gen-0 .g-year { right: 8cqw; top: 7cqw; }
+.gen-0 .g-by { left: 8cqw; bottom: 7cqw; }
+/* 1: stacked title over a rule */
+.gen-1 .g-title { left: 8cqw; right: 6cqw; top: 9cqw; font-size: 17cqw; }
+.gen-1 .g-mark { left: 8cqw; right: 8cqw; bottom: 20cqw; height: 3cqw; background: var(--ac); }
+.gen-1 .g-year { left: 8cqw; bottom: 9cqw; }
+.gen-1 .g-by { right: 8cqw; bottom: 9cqw; text-align: right; max-width: 55cqw; }
+/* 2: bands */
+.gen-2 .g-mark { left: 0; right: 0; top: 30cqh; height: 40cqh; background: linear-gradient(180deg, var(--ac) 0 18%, transparent 18% 32%, var(--ac) 32% 50%, transparent 50% 64%, var(--ac) 64% 82%, transparent 82% 100%); }
+.gen-2 .g-title { left: 8cqw; right: 8cqw; top: 8cqw; }
+.gen-2 .g-year { left: 8cqw; bottom: 8cqw; }
+.gen-2 .g-by { right: 8cqw; bottom: 8cqw; }
+/* 3: huge year */
+.gen-3 .g-mark { right: -6cqw; top: 2cqw; font: 400 46cqw/0.8 var(--serif); color: var(--ac); writing-mode: vertical-rl; }
+.gen-3 .g-title { left: 8cqw; right: 30cqw; bottom: 16cqw; }
+.gen-3 .g-year { display: none; }
+.gen-3 .g-by { left: 8cqw; bottom: 8cqw; }
+
+/* back insert */
+.f-back { background: var(--paper); color: var(--ink); }
+.back { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.bk-still {
+  height: 26cqh;
+  background-color: var(--sp, #333);
+  background-size: cover;
+  background-position: center 30%;
+  position: relative;
+  flex: none;
+}
+.bk-still::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, .35));
+}
+.bk-body { padding: 5cqw 6.5cqw 0; flex: 1; display: flex; flex-direction: column; gap: 2.4cqw; min-height: 0; }
+.bk-title { margin: 0; font: 400 8.8cqw/1 var(--serif); letter-spacing: -0.01em; text-wrap: balance; }
+.bk-meta { font: 500 3.2cqw/1.2 var(--mono); color: var(--ink-2); letter-spacing: .06em; text-transform: uppercase; margin-top: -.6cqw; }
+.bk-syn {
+  margin: .4cqw 0 0;
+  font: 400 3.45cqw/1.38 var(--sans);
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.bk-facts { display: grid; grid-template-columns: auto 1fr; gap: 1.3cqw 3.8cqw; margin: .4cqw 0 0; padding: 2.4cqw 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); font-size: 3.55cqw; }
+.bk-facts dt { color: var(--ink-2); }
+.bk-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.eps-head { font-size: 3.6cqw; color: var(--ink-2); margin-bottom: 1.6cqw; }
+.eps-head b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.eps-grid { display: flex; flex-wrap: wrap; gap: .9cqw; }
+.eps-grid i { width: 2.6cqw; height: 2.6cqw; border-radius: .5cqw; background: var(--rule); }
+.eps-grid i.on { background: var(--plastic-blue); }
+.eps-bar { height: 2cqw; border-radius: 2cqw; background: var(--rule); overflow: hidden; }
+.eps-bar span { display: block; height: 100%; background: var(--plastic-blue); }
+.stars { display: flex; align-items: center; gap: .6cqw; margin-top: auto; }
+.stars .lbl { font-size: 3.4cqw; color: var(--ink-2); margin-right: 1.6cqw; }
+.stars button {
+  padding: .4cqw;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: rgba(29, 26, 22, .2);
+  transition: transform .2s var(--ease-out), color .15s;
+}
+.stars button:hover { transform: scale(1.15); }
+.stars button.on { color: var(--accent); }
+.stars svg { width: 5.6cqw; height: 5.6cqw; display: block; fill: currentColor; }
+.bk-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 3cqw; padding: 4cqw 7cqw 5cqw; }
+.barcode { height: 9cqw; background-color: #fff; padding: 1cqw; box-shadow: 0 0 0 1cqw #fff; }
+.bk-fine { font: 400 2.5cqw/1.35 var(--mono); color: var(--ink-2); text-align: right; letter-spacing: .04em; }
+
+/* inside: liner notes + disc tray */
+.f-inner {
+  overflow: visible;
+  transform-style: preserve-3d;
+  background: linear-gradient(155deg, #27262b, #141316);
+  box-shadow:
+    inset 0 0 0 4px #1d1c20,
+    inset -12px 0 18px -8px rgba(0, 0, 0, .85),
+    inset 0 0 22px rgba(0, 0, 0, .75);
+  padding: 12px 14px 12px 12px;
+  display: flex;
+  flex-direction: column;
+}
+.notes-card {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: 2px 3px 3px 2px;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, .04) 0, transparent 10px, transparent calc(100% - 18px), rgba(60, 40, 15, .07) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='28'%3E%3Crect y='27' width='20' height='1' fill='%231e468c' fill-opacity='.15'/%3E%3C/svg%3E"),
+    var(--paper);
+  background-position: 0 0, 0 60px, 0 0;
+  padding: 16px 18px 14px 24px;
+  box-shadow:
+    -3px 5px 14px rgba(0, 0, 0, .55),
+    0 1px 0 rgba(255, 255, 255, .7) inset;
+  transform: translateZ(3px) rotateZ(-.35deg);
+}
+.notes-card::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(200, 68, 43, .35);
+  pointer-events: none;
+}
+/* molded plastic booklet clips on the inner lid */
+.lid-clip {
+  position: absolute;
+  left: 4px;
+  width: 18px;
+  height: 52px;
+  border-radius: 2px 6px 6px 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .18), rgba(35, 34, 40, .92) 35%, rgba(18, 17, 20, .96));
+  box-shadow:
+    2px 3px 6px rgba(0, 0, 0, .55),
+    inset 0 1px 0 rgba(255, 255, 255, .25),
+    inset -1px 0 0 rgba(255, 255, 255, .18);
+  transform: translateZ(6px);
+  pointer-events: none;
+}
+.lid-clip.top { top: 22%; }
+.lid-clip.bot { bottom: 22%; }
+.notes-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.notes-h { font: 600 26px/1 var(--hand); margin: 0; color: var(--ink); }
+.notes-stamp {
+  font: 500 9px/1 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 3px 5px;
+  border: 1px solid rgba(29, 26, 22, .16);
+  border-radius: 2px;
+  transform: rotate(1.2deg);
+}
+.notes {
+  flex: 1;
+  width: 100%;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: 500 22px/28px var(--hand);
+  color: #233a6b;
+  padding: 0;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: auto;
+}
+.notes::placeholder { color: rgba(35, 58, 107, .4); }
+.notes-saved { font: 400 11px/1 var(--mono); color: var(--ink-3); height: 12px; }
+
+.f-tray {
+  overflow: visible;
+  transform-style: preserve-3d;
+  background:
+    radial-gradient(circle at 12px 12px, rgba(0, 0, 0, .35) 0 3px, rgba(255, 255, 255, .06) 3.5px 4.5px, transparent 5px),
+    radial-gradient(circle at calc(100% - 12px) 12px, rgba(0, 0, 0, .35) 0 3px, rgba(255, 255, 255, .06) 3.5px 4.5px, transparent 5px),
+    radial-gradient(circle at 12px calc(100% - 12px), rgba(0, 0, 0, .35) 0 3px, rgba(255, 255, 255, .06) 3.5px 4.5px, transparent 5px),
+    radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), rgba(0, 0, 0, .35) 0 3px, rgba(255, 255, 255, .06) 3.5px 4.5px, transparent 5px),
+    linear-gradient(90deg, rgba(0, 0, 0, .55) 0, transparent 14px),
+    linear-gradient(160deg, #28272d, #121115);
+  box-shadow:
+    inset 0 0 0 4px #1d1c20,
+    inset 0 0 0 6px rgba(255, 255, 255, .05),
+    inset 0 0 22px rgba(0, 0, 0, .85);
+}
+/* recessed circular disc well + finger notches + spindle hub on the tray floor */
+.tray-well {
+  position: absolute;
+  left: 5.5%;
+  width: 89%;
+  aspect-ratio: 1;
+  top: 50%;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(0, 0, 0, .45) 0 18%, transparent 18.5% 34%, rgba(255, 255, 255, .035) 34.5% 35.5%, transparent 36% 58%, rgba(0, 0, 0, .22) 58.5% 60%, transparent 60.5%),
+    radial-gradient(circle at 38% 32%, rgba(255, 255, 255, .06), rgba(0, 0, 0, .48) 78%);
+  box-shadow:
+    inset 0 6px 14px rgba(0, 0, 0, .72),
+    inset 0 -2px 5px rgba(255, 255, 255, .08),
+    0 1px 0 rgba(255, 255, 255, .1);
+  pointer-events: none;
+}
+.tray-well::before, .tray-well::after {
+  /* molded thumb cutouts at top and bottom of the disc well */
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 28%;
+  height: 13%;
+  translate: -50% 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .34);
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, .65), 0 1px 0 rgba(255, 255, 255, .08);
+}
+.tray-well::before { top: -5.5%; }
+.tray-well::after { bottom: -5.5%; }
+.tray-spindle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24%;
+  height: 24%;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #0b0b0d 0 24%, #2a2930 25% 42%, transparent 43%),
+    conic-gradient(from 0deg, rgba(255, 255, 255, .14), rgba(0, 0, 0, .45) 30deg, rgba(255, 255, 255, .14) 60deg, rgba(0, 0, 0, .45) 90deg, rgba(255, 255, 255, .14) 120deg, rgba(0, 0, 0, .45) 150deg, rgba(255, 255, 255, .14) 180deg, rgba(0, 0, 0, .45) 210deg, rgba(255, 255, 255, .14) 240deg, rgba(0, 0, 0, .45) 270deg, rgba(255, 255, 255, .14) 300deg, rgba(0, 0, 0, .45) 330deg, rgba(255, 255, 255, .14) 360deg),
+    radial-gradient(circle, #1a191e 0 66%, rgba(0, 0, 0, .7) 68% 100%);
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, .75),
+    inset 0 1px 1px rgba(255, 255, 255, .2);
+}
+/* dynamic shadow cast by the hovering CD onto the tray well */
+.disc-shadow {
+  position: absolute;
+  left: 7%;
+  width: 86%;
+  aspect-ratio: 1;
+  top: 50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 0 7%, rgba(0, 0, 0, .72) 12% 58%, rgba(0, 0, 0, .28) 68%, transparent 76%);
+  transform: translate3d(var(--dsx, 0px), calc(-50% + var(--dsy, 4px)), 1px) scale(var(--dss, .96));
+  opacity: var(--dso, .55);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.disc {
+  position: absolute;
+  left: 7%;
+  width: 86%;
+  aspect-ratio: 1;
+  top: 50%;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transform-style: preserve-3d;
+  transform: translate3d(0, -50%, var(--dz, 2px)) rotateX(var(--drx, 0deg)) rotateY(var(--dry, 0deg));
+  will-change: transform;
+}
+.disc * { pointer-events: none; user-select: none; -webkit-user-select: none; }
+.disc-float {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  transform-style: preserve-3d;
+  transition: transform .35s var(--ease-out);
+}
+.box.disc-out .disc-float {
+  animation: disc-hover 3.6s ease-in-out infinite;
+}
+.box.disc-out .disc:hover .disc-float {
+  transform: translateZ(9px) scale(1.02);
+}
+@keyframes disc-hover {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -4px; }
+}
+.disc-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  rotate: var(--spin, 0deg);
+  transition: rotate 1.4s cubic-bezier(.16, 1, .3, 1);
+  background:
+    conic-gradient(from var(--disc-ang, 20deg),
+      #d7dce2 0deg,
+      #f7f5f0 42deg,
+      rgba(168, 224, 255, .92) 68deg,
+      rgba(255, 188, 228, .9) 92deg,
+      #b7c0cb 130deg,
+      #f2f3f5 185deg,
+      rgba(182, 242, 220, .9) 235deg,
+      rgba(255, 222, 168, .9) 265deg,
+      #c6ccd5 310deg,
+      #d7dce2 360deg);
+  /* real physical hole in the center of the CD */
+  -webkit-mask-image: radial-gradient(circle, transparent 0 8.2%, #000 8.7%);
+  mask-image: radial-gradient(circle, transparent 0 8.2%, #000 8.7%);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(255, 255, 255, .82),
+    inset 0 -2px 4px rgba(0, 0, 0, .35);
+}
+.disc-label {
+  position: absolute;
+  inset: 3.2%;
+  border-radius: 50%;
+  background-color: var(--sp, #2a2622);
+  background-size: cover;
+  background-position: center 25%;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .22);
+}
+.disc-label::before {
+  /* printed title band */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 31%;
+  background: var(--paper);
+  box-shadow: 0 -1px 0 rgba(29, 26, 22, .12);
+}
+.disc-label::after {
+  /* subtle gloss sheen across the printed disc art */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .22) 48%, transparent 64%);
+  pointer-events: none;
+}
+.disc-text {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 9%;
+  text-align: center;
+  color: var(--ink);
+  z-index: 1;
+}
+.disc-text b { display: block; font: 400 20px/1 var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disc-text span { font: 500 9px/1.6 var(--mono); letter-spacing: .1em; color: var(--ink-2); }
+.disc-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 31%;
+  height: 31%;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle,
+      transparent 0 26%,
+      rgba(255, 255, 255, .85) 26.5% 29%,
+      rgba(195, 204, 216, .88) 29.5% 44%,
+      rgba(255, 255, 255, .5) 45% 47%,
+      rgba(240, 244, 250, .38) 48% 95%,
+      rgba(0, 0, 0, .28) 96% 100%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .45);
+}
+
+/* ---------- Stage (a case in hand) ---------- */
+.stage { position: fixed; inset: 0; z-index: 100; user-select: none; -webkit-user-select: none; }
+.stage[hidden] { display: none; }
+.veil {
+  position: absolute;
+  inset: 0;
+  /* lights down in the cabin: the room stays warm and visible, just out of focus */
+  background:
+    radial-gradient(48% 52% at 50% 44%, rgba(120, 66, 30, .28), rgba(26, 12, 6, .82));
+  backdrop-filter: blur(9px) saturate(1.1);
+  -webkit-backdrop-filter: blur(9px) saturate(1.1);
+  opacity: 0;
+  transition: opacity .45s var(--ease-out);
+}
+.stage.in .veil { opacity: 1; }
+.stage-3d {
+  position: absolute;
+  inset: 0;
+  perspective: 1450px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.stage-3d.grabbing, .stage-3d.grabbing * { cursor: grabbing; }
+.mover {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 34px);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.mover .box, .mover .lid { will-change: transform; }
+.shadow {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 34px);
+  width: 340px;
+  height: 54px;
+  margin: -27px 0 0 -170px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, .78), transparent);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* Paper cards either side of the case, nav buttons and the bottom strip */
+.stage-panel, .stage-bottom, .stage-close, .stage-nav {
+  position: absolute;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity .42s var(--ease-out) .14s, transform .52s var(--ease-out) .14s;
+}
+.stage.in .stage-panel, .stage.in .stage-bottom, .stage.in .stage-close, .stage.in .stage-nav {
+  opacity: 1;
+}
+.stage-panel {
+  top: calc(50% - 26px);
+  width: clamp(276px, 23.5vw, 336px);
+  max-height: min(620px, calc(100vh - 120px));
+  overflow-y: auto;
+  padding: 20px 20px 18px;
+  border-radius: 16px;
+  background: var(--cream);
+  border: 2.5px solid var(--line);
+  box-shadow: inset 0 -5px 0 rgba(59, 34, 24, .08), 0 30px 50px -20px rgba(10, 4, 1, .85);
+  color: var(--t1);
+  scrollbar-width: thin;
+  scrollbar-color: var(--cream-3) transparent;
+}
+.stage-panel::-webkit-scrollbar { width: 6px; }
+.stage-panel::-webkit-scrollbar-track { background: transparent; }
+.stage-panel::-webkit-scrollbar-thumb { background: var(--cream-3); border-radius: 6px; border: 0; }
+.stage-panel.left {
+  left: clamp(20px, 3.6vw, 56px);
+  transform: translate(-22px, -50%);
+}
+.stage-panel.right {
+  right: clamp(20px, 3.6vw, 56px);
+  transform: translate(22px, -50%);
+}
+.stage.in .stage-panel.left, .stage.in .stage-panel.right {
+  transform: translate(0, -50%);
+}
+.stage.case-open .stage-panel.left {
+  opacity: .18;
+  pointer-events: none;
+  transform: translate(-28px, -50%) scale(.97);
+}
+
+.stage-panel h3 {
+  margin: 20px 0 8px;
+  font: 400 17px/1.25 var(--display);
+  color: var(--t1);
+}
+.stage-panel h3:first-child { margin-top: 0; }
+.sp-synopsis {
+  margin: 0;
+  font: 500 14.5px/1.6 var(--ui);
+  color: var(--t1);
+}
+.sp-director {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--t2);
+}
+.sp-director b { color: var(--t1); font-weight: 700; }
+
+/* Cast row inside left panel */
+.cast-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
+  gap: 12px 8px;
+  margin-top: 10px;
+}
+.cast-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+.cast-av {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font: 400 14px/1 var(--display);
+  color: #fffaf1;
+  background: var(--av-hi, var(--wood));
+  border: 2px solid var(--line);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, .22);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .45);
+}
+.cast-name {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--t1);
+}
+.cast-role {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--t3);
+}
+
+/* Interactive rating & quick notes inside left panel */
+.sp-log {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1.5px dashed var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sp-stars-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sp-stars-lbl {
+  font: 400 17px/1.25 var(--display);
+  color: var(--t1);
+}
+.sp-stars {
+  display: inline-flex;
+  gap: 1px;
+}
+.sp-stars button {
+  padding: 3px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--cream-3);
+  transition: transform .2s var(--ease-out), color .15s;
+}
+.sp-stars button:hover { transform: scale(1.18); color: var(--ember-hi); }
+.sp-stars button.on { color: var(--ember); }
+.sp-stars svg { width: 19px; height: 19px; display: block; fill: currentColor; stroke: var(--line); stroke-width: 1.4; stroke-linejoin: round; }
+
+.sp-note-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.sp-note-input {
+  width: 100%;
+  min-height: 60px;
+  max-height: 120px;
+  resize: vertical;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 2px solid var(--line);
+  /* ruled notepaper */
+  background: #fffaf1 linear-gradient(180deg, transparent 23px, rgba(74, 88, 144, .2) 23px, rgba(74, 88, 144, .2) 24px, transparent 24px) 0 6px / 100% 24px;
+  color: var(--t1);
+  font: 600 19px/24px var(--hand);
+  outline: 0;
+  user-select: text;
+  -webkit-user-select: text;
+  transition: border-color .2s, box-shadow .2s;
+}
+.sp-note-input::placeholder { color: var(--t3); }
+.sp-note-input:focus { border-color: var(--sofa); box-shadow: 0 0 0 3px rgba(74, 88, 144, .25); }
+
+.sp-meta-table {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1.5px dashed var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sp-meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.35;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.sp-meta-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.sp-meta-row span {
+  font: 600 12.5px/1.35 var(--ui);
+  color: var(--t3);
+}
+.sp-meta-row b {
+  font-weight: 700;
+  color: var(--t1);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Right panel: Watch It + Seerr + More Like This */
+.watch-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.btn-watch-primary, .btn-watch-secondary {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 14px;
+  border-radius: 11px;
+  border: 2px solid var(--line);
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform .18s var(--ease-out), background .18s, box-shadow .18s;
+}
+.btn-watch-primary {
+  background: var(--ember);
+  color: var(--line);
+  box-shadow: inset 0 -4px 0 rgba(90, 30, 5, .28), inset 0 2px 0 rgba(255, 220, 180, .45);
+}
+.btn-watch-primary:hover { background: var(--ember-hi); transform: translateY(-1px); }
+.btn-watch-secondary {
+  background: var(--cream-2);
+  color: var(--t1);
+  box-shadow: inset 0 -3px 0 rgba(59, 34, 24, .16);
+}
+.btn-watch-secondary:hover { background: var(--flame); transform: translateY(-1px); }
+.btn-watch-primary:active, .btn-watch-secondary:active { transform: translateY(1px); }
+.btn-watch-primary svg, .btn-watch-secondary svg { width: 16px; height: 16px; flex: none; }
+
+.sp-row-action {
+  margin-top: 12px;
+  padding: 11px 2px;
+  border-top: 1.5px dashed var(--line-soft);
+  border-bottom: 1.5px dashed var(--line-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sp-row-btn {
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--t1);
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+}
+.sp-row-btn:hover { color: var(--sofa); }
+.sp-row-btn svg { width: 16px; height: 16px; color: var(--t2); }
+
+.rec-head {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rec-head h3 { margin: 0; }
+.seerr-pill {
+  padding: 4px 9px;
+  border-radius: 8px;
+  border: 1.5px solid var(--line);
+  background: var(--cream-2);
+  color: var(--t1);
+  font: 700 11.5px/1.2 var(--ui);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .18s;
+}
+.seerr-pill:hover { background: var(--flame); }
+.seerr-pill i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--leaf);
+  border: 1.5px solid var(--line);
+  display: inline-block;
+}
+.seerr-pill i.unset { background: var(--ember); }
+
+.seerr-config {
+  margin-bottom: 10px;
+  padding: 10px 0;
+  border-top: 1.5px dashed var(--line-soft);
+  border-bottom: 1.5px dashed var(--line-soft);
+  font-size: 12.5px;
+}
+.seerr-config[hidden] { display: none; }
+.seerr-config p { margin: 0 0 7px; color: var(--t2); line-height: 1.4; }
+.seerr-config-row { display: flex; gap: 6px; }
+.seerr-config input { padding: 6px 10px; font-size: 12.5px; }
+.seerr-config button {
+  padding: 6px 13px;
+  border-radius: 9px;
+  border: 2px solid var(--line);
+  background: var(--ember);
+  color: var(--line);
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: inset 0 -3px 0 rgba(90, 30, 5, .25);
+}
+.seerr-config button:hover { background: var(--ember-hi); }
+
+.rec-list {
+  display: flex;
+  flex-direction: column;
+}
+.rec-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--t1);
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background .18s, transform .18s var(--ease-out);
+}
+.rec-item:last-child { border-bottom: 0; }
+.rec-item:hover {
+  background: var(--cream-2);
+  transform: translateX(3px);
+}
+.rec-thumb {
+  width: 38px;
+  height: 54px;
+  border-radius: 4px;
+  flex: none;
+  overflow: hidden;
+  position: relative;
+  background: var(--rc-bg, #262320);
+  color: var(--rc-fg, #f7f2e8);
+  border: 1.5px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px;
+}
+.rec-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rec-thumb-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--rc-ac, #c8442b);
+  opacity: .85;
+}
+.rec-thumb-t {
+  font: 400 8.5px/1.05 var(--serif);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+.rec-info {
+  flex: 1;
+  min-width: 0;
+}
+.rec-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rec-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font: 500 12px/1.2 var(--ui);
+  color: var(--t3);
+  font-variant-numeric: tabular-nums;
+}
+.rec-seerr-tag {
+  font: 700 11px/1 var(--ui);
+  color: var(--sofa);
+  flex: none;
+}
+
+/* Prev / Next round buttons flanking the case */
+.stage-nav {
+  top: calc(50% - 30px);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2.5px solid var(--line);
+  background: var(--cream);
+  color: var(--t1);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: inset 0 -4px 0 rgba(59, 34, 24, .14), 0 14px 26px -10px rgba(10, 4, 1, .8);
+  transform: translateY(-50%) scale(.92);
+  transition: opacity .35s var(--ease-out) .15s, transform .25s var(--ease-out), background .2s;
+}
+.stage.in .stage-nav { transform: translateY(-50%) scale(1); }
+.stage-nav:hover {
+  background: var(--flame);
+  transform: translateY(-50%) scale(1.07);
+}
+.stage-nav svg { width: 19px; height: 19px; }
+.stage-nav.prev { left: calc(50% - var(--half-case, 210px) - 62px); }
+.stage-nav.next { right: calc(50% - var(--half-case, 210px) - 62px); }
+
+/* Bottom title strip and case controls */
+.stage-bottom {
+  left: 50%;
+  bottom: 18px;
+  transform: translate(-50%, 12px);
+  min-width: 280px;
+  max-width: calc(100vw - 28px);
+  padding: 12px 14px 12px 18px;
+  border-radius: 16px;
+  background: var(--cream);
+  border: 2.5px solid var(--line);
+  box-shadow: inset 0 -5px 0 rgba(59, 34, 24, .08), 0 26px 44px -18px rgba(10, 4, 1, .85);
+  color: var(--t1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.stage.in .stage-bottom { transform: translate(-50%, 0); }
+.sb-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sb-head h2 {
+  margin: 0;
+  font: 400 21px/1.15 var(--display);
+  color: var(--t1);
+  letter-spacing: -0.01em;
+}
+.sb-meta {
+  margin: 0;
+  font: 600 12.5px/1.3 var(--ui);
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.sb-badge {
+  padding: 1px 6px;
+  border-radius: 5px;
+  border: 1.5px solid var(--line);
+  background: var(--cream-2);
+  color: var(--t1);
+  font-size: 11px;
+  font-weight: 800;
+}
+.sb-star { color: #a8481a; font-weight: 800; }
+.sb-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sb-btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 2px solid var(--line);
+  background: var(--cream-2);
+  color: var(--t1);
+  font-size: 13px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: inset 0 -3px 0 rgba(59, 34, 24, .16);
+  transition: background .18s, transform .18s var(--ease-out);
+}
+.sb-btn:hover { background: var(--flame); transform: translateY(-1px); }
+.sb-btn:active { transform: translateY(1px); }
+.sb-btn[aria-pressed="true"] {
+  background: var(--sofa);
+  color: var(--cream);
+  box-shadow: inset 0 -3px 0 rgba(20, 24, 50, .35);
+}
+.sb-btn.primary {
+  background: var(--ember);
+  color: var(--line);
+  box-shadow: inset 0 -4px 0 rgba(90, 30, 5, .28), inset 0 2px 0 rgba(255, 220, 180, .45);
+}
+.sb-btn.primary:hover { background: var(--ember-hi); }
+.sb-btn svg { width: 15px; height: 15px; flex: none; }
+
+.stage-close {
+  right: 24px;
+  top: 20px;
+  transform: translateY(-6px);
+  background: var(--cream);
+  border-width: 2.5px;
+  box-shadow: inset 0 -3px 0 rgba(59, 34, 24, .14), 0 14px 26px -10px rgba(10, 4, 1, .8);
+}
+.stage.in .stage-close { transform: none; }
+.stage-close:hover { background: var(--flame); }
+
+@media (max-width: 1120px) {
+  .stage-panel { display: none; }
+  .stage.show-mobile-panels .stage-panel.right {
+    display: block;
+    right: 16px;
+    left: 16px;
+    width: auto;
+    top: auto;
+    bottom: 118px;
+    max-height: 46vh;
+    transform: none;
+    z-index: 12;
+  }
+}
+@media (max-width: 760px) {
+  .masthead { padding: 30px 16px 0; gap: 14px; }
+  .nameplate { padding: 14px 18px 16px; }
+  .np-head h1 { font-size: 40px; }
+  .np-head .owner { font-size: 22px; }
+  .ledger, .ledger b { font-size: 15px; }
+  .toolbar { padding: 0 12px; margin-top: clamp(20px, calc(42vh - 260px), 200px); }
+}
+@media (max-width: 640px) {
+  .stage-close { right: 14px; top: 14px; }
+  .stage-nav.prev { left: 10px; }
+  .stage-nav.next { right: 10px; }
+  .stage-bottom { bottom: 12px; padding: 10px 12px; width: calc(100vw - 24px); }
+  .sync { width: 100%; }
+  .toolbar-in { gap: 8px; padding: 8px; }
+  .seg button { padding: 6px 10px; font-size: 12.5px; }
+  .field { padding: 0 10px; font-size: 12.5px; }
+  .field.search { min-width: 130px; }
+  .pick-btn { padding: 0 12px; font-size: 12.5px; }
+  .room { padding: 18px 12px 96px; }
+  .shelf-back { padding: 26px 12px 0; }
+  .bc-body { padding: 0 12px; background-size: 12px 240px; }
+  .plank-face { margin: 0 -12px; padding: 0 18px; }
+  .bc-cap { margin: 0 -8px; }
+}
+
+.empty {
+  padding: 70px 20px 60px;
+  text-align: center;
+  font: 400 24px/1.4 var(--display);
+  color: var(--cream);
+}
+.empty button { margin-top: 16px; }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .slot .box, .slot::after, .disc-body, .disc-float { transition: none; animation: none; }
+  .scene-glow { animation: none; opacity: .7; }
+}
 </style>
 </head>
-<body>
-<header>
-  <h1>Watched</h1>
-  <div class="meta">
-    {{.Movies}} movie{{if ne .Movies 1}}s{{end}} · {{.Shows}} show{{if ne .Shows 1}}s{{end}} · synced {{.Synced}}
-    {{if .SyncErr}}<span class="warn" title="{{.SyncErr}}">· last sync failed, showing cached data</span>{{end}}
-  </div>
-  <form method="post" action="refresh"><button>Refresh now</button></form>
-  <details class="import"{{if .ImportErr}} open{{end}}>
-    <summary>Import from Trakt</summary>
-    {{- if .Trakt}}
-    <form method="post" action="import-trakt">
-      <input name="profile" placeholder="https://trakt.tv/users/yourname" aria-label="Trakt profile link" required>
-      <button>Import</button>
-    </form>
-    <p class="hint">Adds the watch history of a public Trakt profile. Importing again replaces the previous import.</p>
-    {{- else}}
-    <p class="hint">Trakt import is turned off. Set TRAKT_CLIENT_ID to enable it.</p>
-    {{- end}}
-    {{- if .ImportUser}}
-    <p class="hint">Last import: {{.ImportCount}} titles from {{.ImportUser}}, {{.ImportAgo}}.</p>
-    {{- end}}
-    {{- with .ImportErr}}
-    <p class="warn">{{.}}</p>
-    {{- end}}
-  </details>
-  <div class="controls">
-    <div role="group" aria-label="Filter">
-      <button data-filter="all" aria-pressed="true">All</button>
-      <button data-filter="movie" aria-pressed="false">Movies</button>
-      <button data-filter="show" aria-pressed="false">Shows</button>
+<body data-user="{{.User}}" data-jf="{{.JellyfinURL}}" data-seerr="{{.SeerrURL}}" data-movies="{{.Movies}}" data-shows="{{.Shows}}">
+
+<div class="scene" aria-hidden="true">
+  <picture>
+    <source media="(prefers-reduced-motion: reduce)" srcset="assets/cabin-still.jpg">
+    <img src="assets/cabin.webp" alt="" decoding="async" fetchpriority="high">
+  </picture>
+  <div class="scene-glow"></div>
+</div>
+
+<header class="masthead">
+  <div class="nameplate">
+    <div class="np-head">
+      <h1>Watched</h1>
+      <span class="owner">{{if .User}}{{.User}}’s shelf{{else}}the shelf{{end}}</span>
     </div>
-    <select id="sort" aria-label="Sort">
-      <option value="date">Recently watched</option>
-      <option value="title">Title A–Z</option>
-    </select>
-    <input id="q" type="search" placeholder="Search titles" aria-label="Search titles">
+    <p class="ledger" id="ledger"></p>
+  </div>
+  <div class="sync">
+    {{- if .SyncErr}}
+    <span title="{{.SyncErr}}"><span class="sync-dot bad"></span>Jellyfin unreachable, showing the saved shelf</span>
+    {{- else if .Never}}
+    <span><span class="sync-dot bad"></span>Waiting for the first sync</span>
+    {{- else}}
+    <span><span class="sync-dot"></span>Synced {{.Synced}}</span>
+    {{- end}}
+    <form method="post" action="refresh">
+      <button class="text-btn" type="submit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+        Sync now
+      </button>
+    </form>
+    <details class="trakt"{{if .ImportErr}} open{{end}}>
+      <summary class="text-btn">Import from Trakt</summary>
+      <div class="trakt-pop">
+        {{- if .Trakt}}
+        {{- if .ImportUser}}<p>Last import: {{.ImportCount}} titles from {{.ImportUser}}, {{.ImportAgo}}.</p>{{end}}
+        <form method="post" action="import-trakt">
+          <input name="profile" placeholder="trakt.tv/users/yourname" aria-label="Trakt profile link" required>
+          <button class="text-btn" type="submit">Import</button>
+        </form>
+        {{- if .ImportErr}}<p class="err">{{.ImportErr}}</p>{{end}}
+        {{- else}}
+        <p>Set <code>TRAKT_CLIENT_ID</code> on the server to turn on Trakt import.</p>
+        {{- end}}
+      </div>
+    </details>
   </div>
 </header>
-<main id="grid">
-{{- range .Items}}
-  <div class="card" data-type="{{.Type}}" data-title="{{lower .Title}}" data-date="{{iso .LastPlayed}}">
-    {{- with .Poster}}
-    <img class="poster" src="posters/{{.}}" loading="lazy" alt="">
-    {{- else}}
-    <div class="poster ph">{{.Title}}</div>
-    {{- end}}
-    <p class="title">{{.Title}}</p>
-    <div class="sub">{{if .Year}}{{.Year}}{{end}}{{if eq .Type "show"}} · {{.Played}} / {{.Total}} episodes{{end}}</div>
-    <div class="sub">{{if .Completed}}<span class="badge done">Completed</span>{{else}}<span class="badge">Watched</span>{{end}}<span class="nw">{{date .LastPlayed}}</span></div>
+
+<div class="toolbar" id="toolbar">
+  <div class="toolbar-in">
+    <div class="seg" role="group" aria-label="Show">
+      <button type="button" data-filter="all" aria-pressed="true">Everything</button>
+      <button type="button" data-filter="movie" aria-pressed="false">Films</button>
+      <button type="button" data-filter="show" aria-pressed="false">Series</button>
+    </div>
+    <label class="field">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+      <span class="sr">Sort by</span>
+      <select id="sort">
+        <option value="recent">Recently watched</option>
+        <option value="title">Title, A to Z</option>
+        <option value="year">Release year</option>
+      </select>
+    </label>
+    <label class="field search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+      <span class="sr">Find a title</span>
+      <input id="q" type="search" placeholder="Find a title" autocomplete="off">
+    </label>
+    <span class="spacer"></span>
+    <button class="icon-btn" id="sound" type="button" aria-pressed="false" title="Case sounds">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path class="wave" d="M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10" opacity=".25"/></svg>
+    </button>
+    <button class="pick-btn" id="pick" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h3.5c2 0 3.2-1 4.3-2.8l2.4-4.4C14.3 8 15.5 7 17.5 7H21"/><path d="m18 4 3 3-3 3"/><path d="M3 7h3.5c1.4 0 2.4.5 3.2 1.4M13.8 15.6c.9.9 2 1.4 3.7 1.4H21"/><path d="m18 14 3 3-3 3"/></svg>
+      Pick one for me
+    </button>
   </div>
-{{- end}}
-  <p id="empty"{{if .Items}} hidden{{end}}>{{if .Never}}First sync in progress. Reload in a moment.{{else}}Nothing watched yet.{{end}}</p>
+</div>
+
+<main class="room">
+  <div class="bookcase" id="bookcase">
+    <div class="bc-cap"></div>
+    <div class="bc-body" id="shelves"></div>
+    <div class="bc-base"></div>
+  </div>
 </main>
+
+<div id="data" hidden>
+{{- range .Items}}
+  <i data-id="{{.ID}}" data-type="{{.Type}}" data-title="{{.Title}}" data-year="{{.Year}}" data-date="{{iso .LastPlayed}}" data-poster="{{.Poster}}" data-played="{{.Played}}" data-total="{{.Total}}" data-completed="{{.Completed}}"{{if .Ext}} data-tmdb="{{index .Ext "tmdb"}}" data-imdb="{{index .Ext "imdb"}}"{{end}}></i>
+{{- end}}
+</div>
+
+<div class="stage" id="stage" role="dialog" aria-modal="true" aria-labelledby="st-title" hidden>
+  <div class="veil" id="st-veil"></div>
+  <div class="shadow" id="st-shadow"></div>
+  <div class="stage-3d" id="st-3d"><div class="mover" id="st-mover"></div></div>
+
+  <!-- Left BingeBrowse-style Synopsis, Cast & Log Panel -->
+  <aside class="stage-panel left" id="st-left" aria-label="Title details"></aside>
+
+  <!-- Prev / Next Case Navigation Chevrons -->
+  <button class="stage-nav prev" id="st-prev" type="button" aria-label="Previous title on shelf" title="Previous title ([)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+  </button>
+  <button class="stage-nav next" id="st-next" type="button" aria-label="Next title on shelf" title="Next title (])">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+  </button>
+
+  <!-- Right BingeBrowse-style Watch Actions & More Like This (Seerr / Jellyseerr) Panel -->
+  <aside class="stage-panel right" id="st-right" aria-label="Watch and recommendations"></aside>
+
+  <button class="text-btn stage-close" id="st-close" type="button">Put it back <kbd>Space</kbd></button>
+
+  <!-- Bottom Center Title & Controls Pill -->
+  <footer class="stage-bottom" id="st-bottom">
+    <div class="sb-head">
+      <h2 id="st-title"></h2>
+      <p class="sb-meta" id="st-meta"></p>
+    </div>
+    <div class="sb-actions" role="toolbar" aria-label="Case controls">
+      <a class="sb-btn primary" id="st-play" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12-7.5z"/></svg>
+        <span id="st-play-lbl">Stream on Jellyfin</span>
+      </a>
+      <button class="sb-btn" type="button" id="st-flip" aria-pressed="false" title="Flip between front and back cover (B)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H3"/></svg>
+        <span id="st-flip-lbl">Back cover</span>
+      </button>
+      <button class="sb-btn" type="button" id="st-open" aria-pressed="false" title="Open case and inspect disc (O)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/></svg>
+        <span>Open case</span>
+      </button>
+    </div>
+  </footer>
+</div>
+
 <script>
 (() => {
-  const grid = document.getElementById('grid'), empty = document.getElementById('empty');
-  const q = document.getElementById('q'), sort = document.getElementById('sort');
-  const cards = [...grid.querySelectorAll('.card')];
-  const filters = document.querySelectorAll('[data-filter]');
-  let type = 'all';
-  function apply() {
-    const term = q.value.trim().toLowerCase();
-    let shown = 0;
-    for (const c of cards) {
-      c.hidden = !((type === 'all' || c.dataset.type === type) && c.dataset.title.includes(term));
-      if (!c.hidden) shown++;
+  'use strict';
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const body = document.body;
+  const USER = body.dataset.user || '';
+  const JF = (body.dataset.jf || '').replace(/\/+$/, '');
+  const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('watched.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('watched.' + k, JSON.stringify(v)); } catch {} }
+  };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const hash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const fmtDate = d => d ? `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}` : 'Not recorded';
+  const fmtMonth = d => d ? `${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}` : '';
+  const num = n => n.toLocaleString();
+
+  /* ---------------- data ---------------- */
+  const PALETTES = [
+    ['#efe4cf', '#1f1b16', '#d4462a'], ['#1e2b3b', '#f2ead9', '#e8b04a'], ['#2f4a3b', '#efe7d2', '#e07b39'],
+    ['#ead2bd', '#3a1f1a', '#8f2d2a'], ['#161616', '#f0ede6', '#5a9fd6'], ['#f1c34a', '#1b1a17', '#1b1a17'],
+    ['#c8d6ce', '#1e2b27', '#b5432f'], ['#5b2333', '#f7efe2', '#f2b880'], ['#d9dfe8', '#14213d', '#fca311']
+  ];
+
+  const SAMPLE = [
+    ['Seven Samurai', 1954, 'Akira Kurosawa'], ['Mulholland Drive', 2001, 'David Lynch'], ['8½', 1963, 'Federico Fellini'],
+    ['In the Mood for Love', 2000, 'Wong Kar-wai'], ['Parasite', 2019, 'Bong Joon-ho'], ['Twin Peaks', 1990, 'Lynch & Frost', 30, 30],
+    ['Spirited Away', 2001, 'Hayao Miyazaki'], ['Severance', 2022, 'Dan Erickson', 14, 19], ['Stalker', 1979, 'Andrei Tarkovsky'],
+    ['La Haine', 1995, 'Mathieu Kassovitz'], ['Paris, Texas', 1984, 'Wim Wenders'], ['Barry Lyndon', 1975, 'Stanley Kubrick'],
+    ['Tokyo Story', 1953, 'Yasujirō Ozu'], ['Persona', 1966, 'Ingmar Bergman'], ['Chungking Express', 1994, 'Wong Kar-wai'],
+    ['Breathless', 1960, 'Jean-Luc Godard'], ['Solaris', 1972, 'Andrei Tarkovsky'], ['The 400 Blows', 1959, 'François Truffaut'],
+    ['The Red Shoes', 1948, 'Powell & Pressburger'], ['Do the Right Thing', 1989, 'Spike Lee'], ['The Night of the Hunter', 1955, 'Charles Laughton'],
+    ['Drive My Car', 2021, 'Ryūsuke Hamaguchi'], ['Rashomon', 1950, 'Akira Kurosawa'], ['Succession', 2018, 'Jesse Armstrong', 39, 39]
+  ];
+
+  /* Rich metadata & Seerr-ready TMDB IDs for sample catalog + recommendation pool */
+  const META = {
+    'Seven Samurai': { tmdb: 346, rt: '3h 27m', cert: 'NR', score: '8.6', country: 'JP', genre: 'Action, Drama', syn: 'A veteran samurai answers a village’s plea for protection from bandits, gathering six other masterless warriors to teach the townspeople how to defend their harvest.', cast: [['Toshirō Mifune', 'Kikuchiyo'], ['Takashi Shimura', 'Kambei'], ['Keiko Tsushima', 'Shino'], ['Isao Kimura', 'Katsushirō']] },
+    'Mulholland Drive': { tmdb: 1018, rt: '2h 27m', cert: 'R', score: '7.9', country: 'US', genre: 'Mystery, Thriller', syn: 'After a car wreck on winding Mulholland Drive leaves a woman with amnesia, she and a hopeful Hollywood newcomer search for clues across a dreamlike Los Angeles.', cast: [['Naomi Watts', 'Betty / Diane'], ['Laura Harring', 'Rita / Camilla'], ['Justin Theroux', 'Adam Kesher'], ['Ann Miller', 'Coco']] },
+    '8½': { tmdb: 422, rt: '2h 18m', cert: 'NR', score: '8.0', country: 'IT', genre: 'Drama, Fantasy', syn: 'Harried Italian film director Guido Anselmi retreats into his memories, dreams, and fantasies while struggling to mount his next major science-fiction picture.', cast: [['Marcello Mastroianni', 'Guido Anselmi'], ['Claudia Cardinale', 'Claudia'], ['Anouk Aimée', 'Luisa'], ['Sandra Milo', 'Carla']] },
+    'In the Mood for Love': { tmdb: 843, rt: '1h 38m', cert: 'PG', score: '8.1', country: 'HK', genre: 'Drama, Romance', syn: 'Two neighbors in 1962 Hong Kong form an intimate bond after both suspect their spouses of extramarital affairs, vowing never to mirror the betrayal.', cast: [['Tony Leung', 'Chow Mo-wan'], ['Maggie Cheung', 'Su Li-zhen'], ['Rebecca Pan', 'Mrs. Suen'], ['Kelly Lai Chen', 'Mr. Ho']] },
+    'Parasite': { tmdb: 496243, rt: '2h 12m', cert: 'R', score: '8.5', country: 'KR', genre: 'Thriller, Comedy', syn: 'Greed and class discrimination threaten the newly formed symbiotic relationship between the wealthy Park family and the destitute Kim clan.', cast: [['Song Kang-ho', 'Kim Ki-taek'], ['Lee Sun-kyun', 'Park Dong-ik'], ['Cho Yeo-jeong', 'Choi Yeon-gyo'], ['Choi Woo-shik', 'Kim Ki-woo']] },
+    'Twin Peaks': { tmdb: 1920, rt: '47m / ep', cert: 'TV-MA', score: '8.8', country: 'US', genre: 'Mystery, Drama', syn: 'An idiosyncratic FBI agent travels to the logging town of Twin Peaks to investigate the murder of homecoming queen Laura Palmer, uncovering surreal secrets.', cast: [['Kyle MacLachlan', 'Dale Cooper'], ['Michael Ontkean', 'Harry Truman'], ['Mädchen Amick', 'Shelly'], ['Sheryl Lee', 'Laura Palmer']] },
+    'Spirited Away': { tmdb: 129, rt: '2h 05m', cert: 'PG', score: '8.6', country: 'JP', genre: 'Animation, Fantasy', syn: 'During her family’s move to the suburbs, a sullen 10-year-old girl wanders into a world ruled by gods, witches, and spirits, where humans are changed into beasts.', cast: [['Rumi Hiiragi', 'Chihiro'], ['Miyu Irino', 'Haku'], ['Mari Natsuki', 'Yubaba'], ['Bunta Sugawara', 'Kamaji']] },
+    'Severance': { tmdb: 95396, rt: '50m / ep', cert: 'TV-MA', score: '8.7', country: 'US', genre: 'Sci-Fi, Mystery', syn: 'Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives—until a colleague appears outside the office.', cast: [['Adam Scott', 'Mark Scout'], ['Britt Lower', 'Helly R.'], ['Zach Cherry', 'Dylan G.'], ['John Turturro', 'Irving B.']] },
+    'Stalker': { tmdb: 1398, rt: '2h 42m', cert: 'NR', score: '8.1', country: 'SU', genre: 'Sci-Fi, Drama', syn: 'A guide leads two men—a melancholic writer and a quiet scientist—through an restricted wasteland known as the Zone to find a room that grants a person’s innermost desires.', cast: [['Alexander Kaidanovsky', 'Stalker'], ['Anatoly Solonitsyn', 'Writer'], ['Nikolai Grinko', 'Professor'], ['Alisa Freindlich', 'Wife']] },
+    'La Haine': { tmdb: 406, rt: '1h 38m', cert: 'NR', score: '8.1', country: 'FR', genre: 'Drama, Crime', syn: 'Twenty-four hours in the lives of three young men in the French suburbs the day after a violent riot leaves their friend in a coma.', cast: [['Vincent Cassel', 'Vinz'], ['Hubert Koundé', 'Hubert'], ['Saïd Taghmaoui', 'Saïd'], ['Abdel Ahmed Ghili', 'Abdel']] },
+    'Paris, Texas': { tmdb: 655, rt: '2h 25m', cert: 'R', score: '8.1', country: 'DE / US', genre: 'Drama', syn: 'Travis Henderson, an aimless drifter who has been missing for four years, wanders out of the desert and must reconnect with society, himself, his young son, and his estranged wife.', cast: [['Harry Dean Stanton', 'Travis'], ['Nastassja Kinski', 'Jane'], ['Dean Stockwell', 'Walt'], ['Hunter Carson', 'Hunter']] },
+    'Barry Lyndon': { tmdb: 3175, rt: '3h 05m', cert: 'PG', score: '8.1', country: 'UK', genre: 'Drama, History', syn: 'An Irish rogue wins the heart of a rich widow and assumes her dead husband’s aristocratic position in 18th-century England, using every cunning tactic to stay there.', cast: [['Ryan O’Neal', 'Barry Lyndon'], ['Marisa Berenson', 'Lady Lyndon'], ['Patrick Magee', 'Chevalier'], ['Hardy Krüger', 'Potzdorf']] },
+    'Tokyo Story': { tmdb: 18148, rt: '2h 16m', cert: 'NR', score: '8.2', country: 'JP', genre: 'Drama', syn: 'An aging couple travel from their quiet coastal village to postwar Tokyo to visit their grown children, only to find them too absorbed in daily life to spare much time.', cast: [['Chishū Ryū', 'Shūkichi'], ['Chieko Higashiyama', 'Tomi'], ['Setsuko Hara', 'Noriko'], ['Haruko Sugimura', 'Shige']] },
+    'Persona': { tmdb: 797, rt: '1h 23m', cert: 'NR', score: '8.1', country: 'SE', genre: 'Drama, Mystery', syn: 'A nurse is put in charge of a stage actress who has suddenly stopped speaking, and finds that their personas are slowly melding together at a remote seaside cottage.', cast: [['Bibi Andersson', 'Alma'], ['Liv Ullmann', 'Elisabet Vogler'], ['Margaretha Krook', 'Doctor'], ['Gunnar Björnstrand', 'Mr. Vogler']] },
+    'Chungking Express': { tmdb: 11104, rt: '1h 42m', cert: 'PG-13', score: '8.0', country: 'HK', genre: 'Drama, Romance', syn: 'Two melancholic Hong Kong policemen fall in love: one with a mysterious underworld figure in a blonde wig, the other with a quirky snack-bar worker who rearranges his apartment.', cast: [['Takeshi Kaneshiro', 'Cop 223'], ['Faye Wong', 'Faye'], ['Tony Leung', 'Cop 663'], ['Brigitte Lin', 'Woman in Wig']] },
+    'Breathless': { tmdb: 269, rt: '1h 30m', cert: 'NR', score: '7.7', country: 'FR', genre: 'Crime, Drama', syn: 'A small-time thief steals a car and impulsively murders a motorcycle policeman. Wanted by the authorities, he reunites with an American journalism student in Paris.', cast: [['Jean-Paul Belmondo', 'Michel Poiccard'], ['Jean Seberg', 'Patricia'], ['Daniel Boulanger', 'Inspector'], ['Jean-Pierre Melville', 'Parvulesco']] },
+    'Solaris': { tmdb: 593, rt: '2h 47m', cert: 'PG', score: '8.0', country: 'SU', genre: 'Sci-Fi, Mystery', syn: 'A psychologist is sent to a space station orbiting a distant water-covered planet to discover what has caused the crew to go insane and confront manifestations of his own past.', cast: [['Donatas Banionis', 'Kris Kelvin'], ['Natalya Bondarchuk', 'Hari'], ['Jüri Järvet', 'Dr. Snaut'], ['Vladislav Dvorzhetsky', 'Berton']] },
+    'The 400 Blows': { tmdb: 147, rt: '1h 39m', cert: 'NR', score: '8.1', country: 'FR', genre: 'Drama', syn: 'A young Parisian boy, left without attention by his parents and misunderstood at school, delves into a life of petty truancy while longing for a glimpse of the sea.', cast: [['Jean-Pierre Léaud', 'Antoine Doinel'], ['Claire Maurier', 'Gilberte'], ['Albert Rémy', 'Julien'], ['Patrick Auffay', 'René']] },
+    'The Red Shoes': { tmdb: 19542, rt: '2h 15m', cert: 'NR', score: '8.1', country: 'UK', genre: 'Drama, Music', syn: 'A young ballerina joins a prestigious troupe led by the ruthlessly demanding Boris Lermontov, where her devotion to dance is tested when she falls in love with a composer.', cast: [['Moira Shearer', 'Victoria Page'], ['Anton Walbrook', 'Boris Lermontov'], ['Marius Goring', 'Julian Craster'], ['Robert Helpmann', 'Ivan Boleslawsky']] },
+    'Do the Right Thing': { tmdb: 925, rt: '2h 00m', cert: 'R', score: '8.0', country: 'US', genre: 'Drama', syn: 'On the hottest day of the year on a street in the Bedford-Stuyvesant section of Brooklyn, everyone’s hate and bigotry smolders and builds until it explodes into violence.', cast: [['Spike Lee', 'Mookie'], ['Danny Aiello', 'Sal'], ['Ossie Davis', 'Da Mayor'], ['Giancarlo Esposito', 'Buggin Out']] },
+    'The Night of the Hunter': { tmdb: 3112, rt: '1h 32m', cert: 'NR', score: '8.0', country: 'US', genre: 'Thriller, Crime', syn: 'A religious fanatic marries a gullible widow whose young children are reluctant to tell him where their real dad hid $10,000 he’d stolen in a robbery.', cast: [['Robert Mitchum', 'Harry Powell'], ['Shelley Winters', 'Willa Harper'], ['Lillian Gish', 'Rachel Cooper'], ['Billy Chapin', 'John Harper']] },
+    'Drive My Car': { tmdb: 758866, rt: '2h 59m', cert: 'NR', score: '7.6', country: 'JP', genre: 'Drama', syn: 'A renowned stage actor and director learns to cope with his wife’s unexpected passing when he receives an offer to direct a multilingual production of Uncle Vanya in Hiroshima.', cast: [['Hidetoshi Nishijima', 'Yūsuke Kafuku'], ['Tōko Miura', 'Misaki Watari'], ['Masaki Okada', 'Kōji Takatsuki'], ['Reika Kirishima', 'Oto Kafuku']] },
+    'Rashomon': { tmdb: 548, rt: '1h 28m', cert: 'NR', score: '8.2', country: 'JP', genre: 'Crime, Mystery', syn: 'The rape of a bride and the murder of her samurai husband are recalled from the contradicting perspectives of a bandit, the bride, the samurai’s ghost, and a woodcutter.', cast: [['Toshirō Mifune', 'Tajōmaru'], ['Machiko Kyō', 'Masako'], ['Masayuki Mori', 'Takehiro'], ['Takashi Shimura', 'Woodcutter']] },
+    'Succession': { tmdb: 76331, rt: '1h 02m / ep', cert: 'TV-MA', score: '8.9', country: 'US', genre: 'Drama', syn: 'The Roy family is known for controlling the biggest media and entertainment company in the world. However, their world changes when their father steps back from the company.', cast: [['Brian Cox', 'Logan Roy'], ['Jeremy Strong', 'Kendall Roy'], ['Sarah Snook', 'Shiv Roy'], ['Kieran Culkin', 'Roman Roy']] }
+  };
+
+  /* External Seerr-ready discovery catalog for "More Like This" recommendations */
+  const SEERR_CATALOG = [
+    { title: 'Harakiri', year: 1962, rt: '2h 13m', type: 'movie', tmdb: 14537, genre: 'Action, Drama', pal: ['#1f1b16', '#efe4cf', '#c8442b'] },
+    { title: 'Blue Velvet', year: 1986, rt: '2h 00m', type: 'movie', tmdb: 793, genre: 'Mystery, Thriller', pal: ['#14213d', '#d9dfe8', '#5a9fd6'] },
+    { title: 'Lost Highway', year: 1997, rt: '2h 14m', type: 'movie', tmdb: 638, genre: 'Mystery, Thriller', pal: ['#161616', '#f0ede6', '#d4462a'] },
+    { title: 'Memories of Murder', year: 2003, rt: '2h 11m', type: 'movie', tmdb: 11423, genre: 'Crime, Thriller', pal: ['#2f4a3b', '#efe7d2', '#e07b39'] },
+    { title: 'Fallen Angels', year: 1995, rt: '1h 39m', type: 'movie', tmdb: 11220, genre: 'Crime, Romance', pal: ['#5b2333', '#f7efe2', '#f2b880'] },
+    { title: 'Princess Mononoke', year: 1997, rt: '2h 14m', type: 'movie', tmdb: 128, genre: 'Animation, Fantasy', pal: ['#2f4a3b', '#efe7d2', '#b5432f'] },
+    { title: 'Dark', year: 2017, rt: '55m / ep', type: 'show', tmdb: 70523, genre: 'Sci-Fi, Mystery', pal: ['#161616', '#f0ede6', '#fca311'] },
+    { title: 'Mr. Robot', year: 2015, rt: '49m / ep', type: 'show', tmdb: 62560, genre: 'Drama, Thriller', pal: ['#1e2b3b', '#f2ead9', '#d4462a'] },
+    { title: 'The Leftovers', year: 2014, rt: '58m / ep', type: 'show', tmdb: 54344, genre: 'Drama, Mystery', pal: ['#d9dfe8', '#14213d', '#5a9fd6'] },
+    { title: 'Andrei Rublev', year: 1966, rt: '3h 25m', type: 'movie', tmdb: 895, genre: 'Drama, History', pal: ['#efe4cf', '#1f1b16', '#8f2d2a'] },
+    { title: 'Portrait of a Lady on Fire', year: 2019, rt: '2h 02m', type: 'movie', tmdb: 531428, genre: 'Drama, Romance', pal: ['#5b2333', '#f7efe2', '#e07b39'] },
+    { title: 'High and Low', year: 1963, rt: '2h 23m', type: 'movie', tmdb: 12493, genre: 'Crime, Mystery', pal: ['#161616', '#f0ede6', '#e8b04a'] },
+    { title: 'Wings of Desire', year: 1987, rt: '2h 08m', type: 'movie', tmdb: 144, genre: 'Drama, Fantasy', pal: ['#ead2bd', '#3a1f1a', '#8f2d2a'] },
+    { title: 'Mad Men', year: 2007, rt: '47m / ep', type: 'show', tmdb: 1104, genre: 'Drama', pal: ['#efe4cf', '#1f1b16', '#d4462a'] },
+    { title: 'The Bear', year: 2022, rt: '34m / ep', type: 'show', tmdb: 136315, genre: 'Drama', pal: ['#1e2b3b', '#f2ead9', '#5a9fd6'] }
+  ];
+
+  function load() {
+    const raw = $$('#data i');
+    if (raw.length) {
+      return {
+        sample: false,
+        items: raw.map(el => {
+          const d = new Date(el.dataset.date);
+          return {
+            id: el.dataset.id,
+            type: el.dataset.type === 'show' ? 'show' : 'movie',
+            title: el.dataset.title || 'Untitled',
+            year: parseInt(el.dataset.year, 10) || 0,
+            date: isNaN(d) || d.getFullYear() < 1971 ? null : d,
+            poster: el.dataset.poster || '',
+            played: parseInt(el.dataset.played, 10) || 0,
+            total: parseInt(el.dataset.total, 10) || 0,
+            completed: el.dataset.completed === 'true',
+            tmdb: el.dataset.tmdb || '',
+            imdb: el.dataset.imdb || ''
+          };
+        })
+      };
     }
-    if (cards.length) { empty.hidden = shown > 0; empty.textContent = 'No matches.'; }
+    const now = Date.now();
+    return {
+      sample: true,
+      items: SAMPLE.map(([title, year, by, played, total], i) => ({
+        id: 'sample-' + i,
+        type: total ? 'show' : 'movie',
+        title, year, by,
+        date: new Date(now - (i * 11 + (hash(title) % 9)) * 86400000),
+        poster: '',
+        played: played || 0,
+        total: total || 0,
+        completed: total ? played >= total : true,
+        tmdb: META[title]?.tmdb ? String(META[title].tmdb) : ''
+      }))
+    };
   }
-  for (const b of filters) b.onclick = () => {
-    type = b.dataset.filter;
-    for (const o of filters) o.setAttribute('aria-pressed', o === b);
+
+  const { items: ITEMS, sample: SAMPLE_MODE } = load();
+  // Catalogue numbers follow the order things were watched: the first thing you watched is No. 001.
+  [...ITEMS].sort((a, b) => (a.date || 0) - (b.date || 0)).forEach((it, i) => { it.no = String(i + 1).padStart(3, '0'); });
+  const byId = new Map(ITEMS.map(it => [it.id, it]));
+  ITEMS.forEach(it => {
+    const p = PALETTES[hash(it.title) % PALETTES.length];
+    it.pal = p;
+    it.sp = p[0]; it.sf = p[1];
+    it.layout = (hash(it.title + '*') % 4);
+    const m = META[it.title] || {};
+    it.syn = m.syn || `${it.title}${it.year ? ' (' + it.year + ')' : ''} is catalogued in ${USER ? USER + '’s' : 'this'} personal watched shelf as entry No. ${it.no}. Flip to the back cover or open the case to inspect your watch history and liner notes.`;
+    it.rt = m.rt || (it.type === 'show' ? `${it.total || it.played || 10} eps` : '2h 04m');
+    it.cert = m.cert || (it.type === 'show' ? 'TV-14' : 'PG-13');
+    it.score = m.score || (7.4 + (hash(it.title + 's') % 15) / 10).toFixed(1);
+    it.country = m.country || 'US';
+    it.genre = m.genre || (it.type === 'show' ? 'Drama, Series' : 'Drama, Cinema');
+    it.cast = m.cast || [];
+    if (!it.tmdb && m.tmdb) it.tmdb = String(m.tmdb);
+  });
+
+  /* Seerr / Jellyseerr URL helpers */
+  const getSeerrUrl = () => (store.get('seerrUrl', '') || body.dataset.seerr || '').trim().replace(/\/+$/, '');
+  function buildSeerrHref(rec) {
+    const base = getSeerrUrl();
+    const mediaPath = rec.type === 'show' ? 'tv' : 'movie';
+    if (!base) {
+      return rec.tmdb ? `#seerr://${mediaPath}/${rec.tmdb}` : `#seerr://search?query=${encodeURIComponent(rec.title)}`;
+    }
+    if (rec.tmdb) return `${base}/${mediaPath}/${encodeURIComponent(rec.tmdb)}`;
+    return `${base}/search?query=${encodeURIComponent(rec.title)}`;
+  }
+
+  function recommendationsFor(it) {
+    // Combine matching-genre / type external Seerr titles + other shelf items so every card has 5 recommendations
+    const pool = [
+      ...SEERR_CATALOG.filter(r => r.title !== it.title),
+      ...ITEMS.filter(x => x.id !== it.id).map(x => ({
+        title: x.title,
+        year: x.year,
+        rt: x.rt,
+        type: x.type,
+        tmdb: x.tmdb,
+        poster: x.poster,
+        genre: x.genre,
+        pal: x.pal
+      }))
+    ];
+    const start = hash(it.title + ':rec') % Math.max(1, pool.length);
+    const picked = [];
+    const seen = new Set([it.title]);
+    // Prefer same type or overlapping genre first
+    for (let pass = 0; pass < 2 && picked.length < 5; pass++) {
+      for (let i = 0; i < pool.length && picked.length < 5; i++) {
+        const cand = pool[(start + i * 3) % pool.length];
+        if (!cand || seen.has(cand.title)) continue;
+        if (pass === 0 && cand.type !== it.type) continue;
+        seen.add(cand.title);
+        picked.push(cand);
+      }
+    }
+    return picked;
+  }
+
+  /* ---------------- ledger ---------------- */
+  (function ledger() {
+    const films = ITEMS.filter(i => i.type === 'movie').length;
+    const series = ITEMS.filter(i => i.type === 'show');
+    const eps = series.reduce((s, i) => s + i.played, 0);
+    const yr = new Date().getFullYear();
+    const thisYear = ITEMS.filter(i => i.date && i.date.getFullYear() === yr).length;
+    const parts = [];
+    parts.push(`<b>${num(films)}</b> ${films === 1 ? 'film' : 'films'} and <b>${num(series.length)}</b> ${series.length === 1 ? 'series' : 'series'} on the shelf`);
+    if (eps) parts.push(`<b>${num(eps)}</b> episodes`);
+    if (thisYear) parts.push(`<b>${num(thisYear)}</b> added in ${yr}`);
+    let html = parts.join(', ') + '.';
+    if (SAMPLE_MODE) html += `<span class="note">This is a sample shelf. Your own history replaces it after the first successful sync with Jellyfin, or a Trakt import.</span>`;
+    $('#ledger').innerHTML = html;
+  })();
+
+  /* ---------------- sound ---------------- */
+  let soundOn = store.get('sound', false);
+  let actx = null;
+  const soundBtn = $('#sound');
+  const paintSound = () => { soundBtn.setAttribute('aria-pressed', soundOn); $('.wave', soundBtn).setAttribute('opacity', soundOn ? '1' : '.25'); };
+  paintSound();
+  soundBtn.onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); paintSound(); if (soundOn) tick('lift'); };
+  function tick(kind) {
+    if (!soundOn) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const t = actx.currentTime;
+      const len = kind === 'hinge' ? .12 : .05;
+      const buf = actx.createBuffer(1, actx.sampleRate * len, actx.sampleRate);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ch.length, kind === 'hinge' ? 2 : 6);
+      const src = actx.createBufferSource(); src.buffer = buf;
+      const bp = actx.createBiquadFilter(); bp.type = 'bandpass';
+      bp.frequency.value = { lift: 2400, drop: 1300, hinge: 900, spin: 3200 }[kind] || 2000; bp.Q.value = 1.4;
+      const g = actx.createGain(); g.gain.value = kind === 'drop' ? .5 : .32;
+      src.connect(bp).connect(g).connect(actx.destination); src.start(t);
+    } catch {}
+  }
+
+  /* ---------------- markup builders ---------------- */
+  const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>';
+
+  function genCover(it) {
+    const [bg, fg, ac] = it.pal;
+    const mark = it.layout === 3 ? `<span class="g-mark">${it.year || ''}</span>` : '<span class="g-mark"></span>';
+    return `<div class="gen gen-${it.layout}" style="--bg:${bg};--fg:${fg};--ac:${ac}">${mark}<span class="g-year">${it.year || ''}</span><span class="g-title">${esc(it.title)}</span>${it.by ? `<span class="g-by">${esc(it.by)}</span>` : ''}</div>`;
+  }
+  const posterURL = it => 'posters/' + encodeURIComponent(it.poster);
+  const coverHTML = (it, eager) => it.poster
+    ? `<img src="${posterURL(it)}" alt="" draggable="false" data-id="${esc(it.id)}" ${eager ? '' : 'loading="lazy"'} decoding="async">`
+    : genCover(it);
+
+  function spineHTML(it) {
+    return `<div class="spine" data-sid="${esc(it.id)}" style="--sp:${it.sp};--sf:${it.sf}"><span class="sp-no">${it.no}</span><span class="sp-title">${esc(it.title)}</span><span class="sp-yr">${it.year || ''}</span></div>`;
+  }
+
+  function shellHTML(it, full) {
+    const front = `<div class="f f-front"><div class="art">${coverHTML(it, full)}</div><div class="hinge"></div><div class="sleeve"></div></div>`;
+    const inner = full ? `<div class="f f-inner">${notesHTML(it)}</div>` : '';
+    return `<div class="box">
+      ${full ? `<div class="f f-back">${backHTML(it)}</div><div class="f f-tray">${trayHTML(it)}</div>` : ''}
+      <div class="f f-left">${spineHTML(it)}</div>
+      <div class="f f-right"></div>
+      <div class="f f-top"></div>
+      <div class="f f-bottom"></div>
+      <div class="lid">${front}${inner}</div>
+    </div>`;
+  }
+
+  function barcode(id) {
+    let h = hash(id) || 1, x = 0;
+    const stops = [];
+    for (let i = 0; i < 38; i++) {
+      h = (Math.imul(h, 1103515245) + 12345) >>> 0;
+      const w = 1 + (h >>> 20) % 3;
+      if (i % 2 === 0) stops.push(`#111 ${x}px ${x + w}px`); else stops.push(`transparent ${x}px ${x + w}px`);
+      x += w;
+    }
+    return `<div class="barcode" style="background-image:linear-gradient(90deg,${stops.join(',')});background-origin:content-box;background-repeat:no-repeat;background-size:${x}px 100%;width:${x + 6}px;padding:3px"></div>`;
+  }
+
+  function backHTML(it) {
+    const series = it.type === 'show';
+    const kind = series ? 'Series' : 'Film';
+    const still = it.poster ? `style="background-image:url('${posterURL(it)}')"` : `style="background:${it.pal[2]}"`;
+    let status = 'Watched';
+    if (series) status = it.completed ? 'Finished' : (it.played ? 'Still watching' : 'Started');
+    let eps = '';
+    if (series && it.total) {
+      const pct = Math.min(100, Math.round(it.played / it.total * 100));
+      const viz = it.total <= 60
+        ? `<div class="eps-grid">${Array.from({ length: it.total }, (_, i) => `<i class="${i < it.played ? 'on' : ''}"></i>`).join('')}</div>`
+        : `<div class="eps-bar"><span style="width:${pct}%"></span></div>`;
+      eps = `<div><div class="eps-head"><b>${it.played}</b> of <b>${it.total}</b> episodes</div>${viz}</div>`;
+    }
+    const rating = store.get('rating.' + it.id, 0);
+    const stars = [1, 2, 3, 4, 5].map(n => `<button type="button" data-star="${n}" class="${n <= rating ? 'on' : ''}" aria-label="${n} star${n > 1 ? 's' : ''}">${STAR}</button>`).join('');
+    return `<div class="back">
+      <div class="bk-still" ${still}></div>
+      <div class="bk-body">
+        <h3 class="bk-title">${esc(it.title)}</h3>
+        <div class="bk-meta">${it.year || 'Year unknown'} · ${kind} · ${esc(it.rt || '')} · No. ${it.no}</div>
+        <p class="bk-syn">${esc(it.syn || '')}</p>
+        <dl class="bk-facts">
+          <dt>Last watched</dt><dd>${fmtDate(it.date)}</dd>
+          <dt>Status</dt><dd>${status}</dd>
+          ${it.by ? `<dt>By</dt><dd>${esc(it.by)}</dd>` : ''}
+        </dl>
+        ${eps}
+        <div class="stars" role="group" aria-label="Your rating"><span class="lbl">Your rating</span>${stars}</div>
+      </div>
+      <div class="bk-foot">${barcode(it.id)}<div class="bk-fine">${esc(USER ? USER + '’s collection' : 'Personal collection')}<br>Catalogue No. ${it.no}</div></div>
+    </div>`;
+  }
+
+  function trayHTML(it) {
+    const label = it.poster ? `style="background-image:url('${posterURL(it)}')"` : `style="background:${it.pal[2]}"`;
+    return `<div class="tray-well"><div class="tray-spindle"></div></div><div class="disc-shadow"></div><button class="disc" type="button" aria-label="Spin the disc"><span class="disc-float"><span class="disc-body"><span class="disc-label" ${label}></span><span class="disc-text"><b>${esc(it.title)}</b><span>${it.year || ''} · NO. ${it.no}</span></span><span class="disc-hub"></span></span></span></button>`;
+  }
+
+  function notesHTML(it) {
+    const v = store.get('note.' + it.id, '');
+    return `<div class="lid-clip top"></div><div class="lid-clip bot"></div><div class="notes-card"><div class="notes-top"><p class="notes-h">Notes</p><span class="notes-stamp">No. ${it.no}</span></div><textarea class="notes" spellcheck="false" placeholder="What stuck with you?" aria-label="Your notes on ${esc(it.title)}">${esc(v)}</textarea><span class="notes-saved"></span></div>`;
+  }
+
+  /* ---------------- spine colour from the poster ---------------- */
+  const cvs = document.createElement('canvas'); cvs.width = cvs.height = 10;
+  const cctx = cvs.getContext('2d', { willReadFrequently: true });
+  function sample(img, it) {
+    if (it.sampled) return;
+    it.sampled = true;
+    try {
+      cctx.drawImage(img, 0, 0, 10, 10);
+      const d = cctx.getImageData(0, 0, 10, 10).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+      r /= n; g /= n; b /= n;
+      // deepen a little so it reads as printed card stock, not a screenshot average
+      const k = .78;
+      r *= k; g *= k; b *= k;
+      it.sp = `rgb(${r | 0},${g | 0},${b | 0})`;
+      it.sf = (.299 * r + .587 * g + .114 * b) > 150 ? '#1d1a16' : '#f7f2e8';
+      $$(`[data-sid="${CSS.escape(it.id)}"]`).forEach(el => { el.style.setProperty('--sp', it.sp); el.style.setProperty('--sf', it.sf); });
+    } catch {}
+  }
+  document.addEventListener('load', e => {
+    const img = e.target;
+    if (img.tagName === 'IMG' && img.dataset.id) { const it = byId.get(img.dataset.id); if (it) sample(img, it); }
+  }, true);
+  document.addEventListener('error', e => {
+    const img = e.target;
+    if (img.tagName === 'IMG' && img.dataset.id) {
+      const it = byId.get(img.dataset.id);
+      if (!it) return;
+      it.poster = '';
+      img.outerHTML = genCover(it);
+    }
+  }, true);
+
+  /* ---------------- shelves ---------------- */
+  const shelvesEl = $('#shelves');
+  const view = { filter: 'all', sort: 'recent', q: '' };
+  let perRow = 0;
+
+  function visible() {
+    const q = view.q;
+    const list = ITEMS.filter(it => (view.filter === 'all' || it.type === view.filter) && (!q || it.title.toLowerCase().includes(q)));
+    if (view.sort === 'title') list.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', ignorePunctuation: true }));
+    else if (view.sort === 'year') list.sort((a, b) => (a.year || 9999) - (b.year || 9999) || a.title.localeCompare(b.title));
+    else list.sort((a, b) => (b.date || 0) - (a.date || 0));
+    return list;
+  }
+
+  function rowLabel(row) {
+    const a = row[0], b = row[row.length - 1];
+    if (view.sort === 'title') {
+      const ia = a.title.replace(/^(the|a|an)\s+/i, '').slice(0, 2), ib = b.title.replace(/^(the|a|an)\s+/i, '').slice(0, 2);
+      return ia === ib ? ia : `${ia} – ${ib}`;
+    }
+    if (view.sort === 'year') return a.year === b.year ? `${a.year || '—'}` : `${a.year || '—'} – ${b.year || '—'}`;
+    const ma = fmtMonth(a.date), mb = fmtMonth(b.date);
+    if (!ma && !mb) return `Nos. ${b.no} – ${a.no}`;
+    return ma === mb ? ma : `${mb} – ${ma}`;
+  }
+
+  function computePerRow() {
+    const cs = getComputedStyle(document.documentElement);
+    const w = parseFloat(cs.getPropertyValue('--case-w'));
+    const gap = parseFloat(cs.getPropertyValue('--gap'));
+    const probe = shelvesEl.clientWidth - (innerWidth <= 640 ? 28 + 28 : 44 + 52);
+    return Math.max(2, Math.floor((probe + gap) / (w + gap)));
+  }
+
+  function render() {
+    perRow = computePerRow();
+    const list = visible();
+    if (!list.length) {
+      shelvesEl.innerHTML = `<section class="shelf"><div class="shelf-back"><div class="empty">Nothing on the shelf matches “${esc(view.q)}”.<br><button class="text-btn" type="button" id="clear-q">Clear the search</button></div></div><div class="plank"><div class="plank-top"></div><div class="plank-face"></div></div></section>`;
+      $('#clear-q').onclick = () => { $('#q').value = ''; view.q = ''; render(); };
+      return;
+    }
+    const rows = [];
+    for (let i = 0; i < list.length; i += perRow) rows.push(list.slice(i, i + perRow));
+    shelvesEl.innerHTML = rows.map((row, r) => {
+      const slots = row.map(it => {
+        const z = (hash(it.id + 'z') % 7) - 3; // hand-placed: some sit a touch further back
+        return `<button class="slot" type="button" data-id="${esc(it.id)}" style="--z:${z}px" aria-label="${esc(it.title)}${it.year ? ', ' + it.year : ''}. Pick up">${shellHTML(it, false)}</button>`;
+      }).join('');
+      const room = r === rows.length - 1 && row.length < perRow ? '<span class="room-note" aria-hidden="true">room for more</span>' : '';
+      return `<section class="shelf" aria-label="Shelf ${r + 1}"><div class="shelf-back"><div class="row">${slots}${room}</div></div><div class="plank"><div class="plank-top"></div><div class="plank-face"><span class="plank-label" aria-hidden="true">${esc(rowLabel(row))}</span></div></div></section>`;
+    }).join('');
+    if (current) { const s = slotFor(current.id); if (s) s.classList.add('out'); }
+  }
+
+  shelvesEl.addEventListener('click', e => {
+    const slot = e.target.closest('.slot');
+    if (slot) pickUp(byId.get(slot.dataset.id), slot);
+  });
+  shelvesEl.addEventListener('pointermove', e => {
+    const slot = e.target.closest('.slot');
+    if (!slot || e.pointerType !== 'mouse') return;
+    const r = slot.getBoundingClientRect();
+    slot.style.setProperty('--hy', (((e.clientX - r.left) / r.width) - .5) * 12 + 'deg');
+    slot.style.setProperty('--hx', -(((e.clientY - r.top) / r.height) - .5) * 6 + 'deg');
+  });
+  shelvesEl.addEventListener('pointerout', e => {
+    const slot = e.target.closest('.slot');
+    if (slot && !slot.contains(e.relatedTarget)) {
+      slot.style.setProperty('--hy', '0deg');
+      slot.style.setProperty('--hx', '0deg');
+    }
+  });
+  shelvesEl.addEventListener('pointerleave', () => {
+    $$('.slot', shelvesEl).forEach(slot => {
+      slot.style.setProperty('--hy', '0deg');
+      slot.style.setProperty('--hx', '0deg');
+    });
+  });
+
+  $$('.seg button').forEach(b => b.onclick = () => {
+    $$('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    view.filter = b.dataset.filter; render();
+  });
+  $('#sort').onchange = e => { view.sort = e.target.value; render(); };
+  let qT;
+  $('#q').oninput = e => { clearTimeout(qT); qT = setTimeout(() => { view.q = e.target.value.trim().toLowerCase(); render(); }, 120); };
+
+  let rT;
+  addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => { if (computePerRow() !== perRow) render(); if (current) layoutStage(); }, 150); });
+
+  const toolbar = $('#toolbar');
+  new IntersectionObserver(([e]) => toolbar.classList.toggle('stuck', e.intersectionRatio < 1), { threshold: [1], rootMargin: '-1px 0px 0px 0px' }).observe(toolbar);
+
+  $('#pick').onclick = () => {
+    const slots = $$('.slot', shelvesEl);
+    if (!slots.length) return;
+    const slot = slots[Math.floor(Math.random() * slots.length)];
+    slot.scrollIntoView({ behavior: REDUCE ? 'auto' : 'smooth', block: 'center' });
+    slot.classList.remove('nudge'); void slot.offsetWidth; slot.classList.add('nudge');
+    tick('lift');
+    setTimeout(() => { slot.classList.remove('nudge'); pickUp(byId.get(slot.dataset.id), slot); }, REDUCE ? 50 : 700);
+  };
+
+  /* ---------------- stage: a case in hand (BingeBrowse close-up view) ---------------- */
+  const stage = $('#stage'), mover = $('#st-mover'), st3d = $('#st-3d'), shadowEl = $('#st-shadow');
+  const leftPanel = $('#st-left'), rightPanel = $('#st-right');
+  const openBtn = $('#st-open'), flipBtn = $('#st-flip'), flipLbl = $('#st-flip-lbl'), playBtn = $('#st-play'), playLbl = $('#st-play-lbl');
+  const prevBtn = $('#st-prev'), nextBtn = $('#st-next');
+  let current = null, box = null, faces = {}, lid = null, returnFocus = null;
+  let W = 390, H = 546, Dp = 41;
+  // S holds the 3D transform state of the case in hand, including z depth for close-up inspection
+  const S = { tx: 0, ty: 0, tz: 0, s: 1, rx: 0, ry: 0, open: 0, shift: 0, pop: 0 };
+  let hoverRx = 0, hoverRy = 0, curHoverRx = 0, curHoverRy = 0;
+  const D2R = Math.PI / 180;
+  const LIGHT = (() => { const v = [-.45, -.6, 1]; const m = Math.hypot(...v); return v.map(x => x / m); })();
+  const slotFor = id => shelvesEl.querySelector(`.slot[data-id="${CSS.escape(id)}"]`);
+
+  function layoutStage() {
+    // Up-close BingeBrowse sizing so the case fills the center stage and back cover text is large & legible
+    if (innerWidth > 1120) {
+      W = Math.round(Math.min(410, innerWidth * .32, (innerHeight - 172) * .714));
+    } else if (innerWidth > 640) {
+      W = Math.round(Math.min(365, innerWidth * .58, (innerHeight - 195) * .714));
+    } else {
+      W = Math.round(Math.min(295, innerWidth * .78, (innerHeight - 210) * .714));
+    }
+    H = Math.round(W * 1.4);
+    Dp = Math.round(W * .108);
+    mover.style.width = W + 'px'; mover.style.height = H + 'px';
+    mover.style.marginLeft = -W / 2 + 'px'; mover.style.marginTop = -H / 2 + 'px';
+    stage.style.setProperty('--half-case', Math.round(W / 2) + 'px');
+    if (box) { box.style.setProperty('--w', W + 'px'); box.style.setProperty('--h', H + 'px'); box.style.setProperty('--d', Dp + 'px'); }
     apply();
+  }
+
+  function rotN(n, extraY = 0, rx = S.rx, ry = S.ry) {
+    let [x, y, z] = n;
+    if (extraY) { const a = extraY * D2R, c = Math.cos(a), s = Math.sin(a); [x, z] = [x * c + z * s, -x * s + z * c]; }
+    const ay = ry * D2R, ax = rx * D2R;
+    const x1 = x * Math.cos(ay) + z * Math.sin(ay), z1 = -x * Math.sin(ay) + z * Math.cos(ay);
+    const y2 = y * Math.cos(ax) - z1 * Math.sin(ax), z2 = y * Math.sin(ax) + z1 * Math.cos(ax);
+    return [x1, y2, z2];
+  }
+  const shadeFor = n => { const d = Math.max(0, n[0] * LIGHT[0] + n[1] * LIGHT[1] + n[2] * LIGHT[2]); return (.55 * (1 - d)).toFixed(3); };
+
+  function syncFlipUI() {
+    const ryN = ((S.ry % 360) + 540) % 360 - 180;
+    const isBack = Math.abs(ryN) > 95;
+    flipBtn.setAttribute('aria-pressed', isBack);
+    flipLbl.textContent = isBack ? 'Front cover' : 'Back cover';
+  }
+
+  function apply() {
+    if (!box) return;
+    const effRx = S.rx + curHoverRx;
+    const effRy = S.ry + curHoverRy;
+    mover.style.transform = `translate3d(${S.tx + S.shift * S.s}px, ${S.ty}px, ${S.tz}px) scale(${S.s})`;
+    box.style.transform = `rotateX(${effRx}deg) rotateY(${effRy}deg)`;
+    lid.style.transform = `translateZ(${Dp / 2}px) rotateY(${S.open}deg)`;
+    const N = {
+      back: [0, 0, -1], left: [-1, 0, 0], right: [1, 0, 0], top: [0, -1, 0], bottom: [0, 1, 0], tray: [0, 0, 1]
+    };
+    for (const k in N) if (faces[k]) faces[k].style.setProperty('--shade', shadeFor(rotN(N[k], 0, effRx, effRy)));
+    faces.front.style.setProperty('--shade', shadeFor(rotN([0, 0, 1], S.open, effRx, effRy)));
+    faces.inner.style.setProperty('--shade', shadeFor(rotN([0, 0, -1], S.open, effRx, effRy)));
+    // the sleeve glare drifts as the case turns
+    const ryN = ((effRy % 360) + 540) % 360 - 180;
+    faces.front.style.setProperty('--gx', (40 - ryN * 1.15 + effRx * .45) + '%');
+    // the CD pops out and hovers above the recessed tray after the lid opens
+    const pop = S.pop;
+    if (faces.tray) {
+      faces.tray.style.setProperty('--dz', (2 + pop * 28).toFixed(2) + 'px');
+      faces.tray.style.setProperty('--drx', (pop * 4.5).toFixed(2) + 'deg');
+      faces.tray.style.setProperty('--dry', (pop * -6.5).toFixed(2) + 'deg');
+      faces.tray.style.setProperty('--dsx', (pop * (7 - ryN * .18)).toFixed(2) + 'px');
+      faces.tray.style.setProperty('--dsy', (3 + pop * (13 + effRx * .18)).toFixed(2) + 'px');
+      faces.tray.style.setProperty('--dss', (.96 - pop * .045).toFixed(3));
+      faces.tray.style.setProperty('--dso', (.42 + pop * .32).toFixed(3));
+      faces.tray.style.setProperty('--disc-ang', (20 + ryN * 1.4 - effRx * .8).toFixed(1) + 'deg');
+    }
+    // floor shadow follows the footprint of the case
+    const a = effRy * D2R;
+    const foot = Math.abs(Math.cos(a)) * W + Math.abs(Math.sin(a)) * Dp + (S.open < -5 ? W * Math.abs(Math.sin(-S.open * D2R / 2)) * .9 : 0);
+    const lift = Math.min(1, Math.max(0, (S.s - .35) / .65));
+    shadowEl.style.transform = `translate(${S.tx + S.shift * S.s}px, ${S.ty + (H / 2 + 28) * S.s}px) scale(${(foot / 340) * S.s}, ${S.s})`;
+    shadowEl.style.opacity = lift;
+    syncFlipUI();
+  }
+
+  let raf = 0, targetRx = 0, targetRy = 0;
+  let activeTweenRes = null;
+  const syncTargets = () => { targetRx = S.rx; targetRy = S.ry; };
+  const easeOut = k => 1 - Math.pow(1 - k, 4);
+  const easeInOut = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+  function cancelTween() {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    if (activeTweenRes) {
+      const res = activeTweenRes;
+      activeTweenRes = null;
+      res();
+    }
+  }
+  function tween(to, ms, ease = easeOut, zArc = 0) {
+    cancelTween();
+    stopInertia();
+    return new Promise(res => {
+      activeTweenRes = res;
+      if (REDUCE) ms = Math.min(ms, 120);
+      const from = { ...S }, t0 = performance.now();
+      const step = now => {
+        const k = Math.min(1, (now - t0) / ms), e = ease(k);
+        for (const key in to) S[key] = from[key] + (to[key] - from[key]) * e;
+        if (zArc) {
+          const baseZ = ('tz' in to) ? from.tz + (to.tz - from.tz) * e : from.tz;
+          S.tz = baseZ + Math.sin(k * Math.PI) * zArc;
+        }
+        curHoverRx *= (1 - e * .35);
+        curHoverRy *= (1 - e * .35);
+        syncTargets();
+        apply();
+        if (k < 1) {
+          raf = requestAnimationFrame(step);
+        } else {
+          raf = 0;
+          if (activeTweenRes === res) activeTweenRes = null;
+          res();
+        }
+      };
+      raf = requestAnimationFrame(step);
+    });
+  }
+  const nearest = (from, target) => target + Math.round((from - target) / 360) * 360;
+
+  function initials(name) {
+    return String(name).split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+  }
+
+  function updateStageMeta(it) {
+    const rating = store.get('rating.' + it.id, 0);
+    const scoreText = rating ? `★ ${rating}/5` : `★ ${it.score}/10`;
+    $('#st-title').textContent = it.title;
+    $('#st-meta').innerHTML = [
+      it.year ? `<span>${it.year}</span>` : '',
+      it.rt ? `<span>· ${esc(it.rt)}</span>` : '',
+      `<span class="sb-badge">${esc(it.cert || (it.type === 'show' ? 'TV' : 'NR'))}</span>`,
+      `<span class="sb-star">${scoreText}</span>`,
+      `<span>· No. ${it.no}</span>`
+    ].filter(Boolean).join(' ');
+  }
+
+  function renderPanels(it) {
+    const series = it.type === 'show';
+    let status = 'Watched';
+    if (series) status = it.completed ? `Finished (${it.played}/${it.total} eps)` : (it.played ? `Watching (${it.played}/${it.total} eps)` : 'Started');
+    const rating = store.get('rating.' + it.id, 0);
+    const noteVal = store.get('note.' + it.id, '');
+    const starsHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" data-pstar="${n}" class="${n <= rating ? 'on' : ''}" aria-label="Rate ${n} star${n > 1 ? 's' : ''}">${STAR}</button>`).join('');
+
+    const castHTML = it.cast && it.cast.length ? `
+      <h3>Starring</h3>
+      <div class="cast-row">
+        ${it.cast.map(([name, role], idx) => {
+          const pal = PALETTES[(hash(name) + idx) % PALETTES.length];
+          return `<div class="cast-item">
+            <div class="cast-av" style="--av-hi:${pal[2]};--av-lo:${pal[0] === '#efe4cf' ? '#2c251e' : pal[0]}">${esc(initials(name))}</div>
+            <span class="cast-name">${esc(name)}</span>
+            <span class="cast-role">${esc(role)}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    ` : '';
+
+    leftPanel.innerHTML = `
+      <h3>Synopsis</h3>
+      <p class="sp-synopsis">${esc(it.syn)}</p>
+      ${it.by ? `<p class="sp-director">${series ? 'Created by' : 'Directed by'} <b>${esc(it.by)}</b></p>` : ''}
+      ${castHTML}
+      <div class="sp-log">
+        <div class="sp-stars-row">
+          <span class="sp-stars-lbl">Your rating</span>
+          <div class="sp-stars" role="group" aria-label="Your rating">${starsHTML}</div>
+        </div>
+        <div class="sp-note-wrap">
+          <textarea class="sp-note-input" id="sp-note" spellcheck="false" placeholder="Write liner notes on ${esc(it.title)}…" aria-label="Liner notes">${esc(noteVal)}</textarea>
+        </div>
+      </div>
+      <div class="sp-meta-table">
+        <div class="sp-meta-row"><span>Last watched</span><b>${fmtDate(it.date)}</b></div>
+        <div class="sp-meta-row"><span>Status</span><b>${esc(status)}</b></div>
+        <div class="sp-meta-row"><span>Country</span><b>${esc(it.country)}</b></div>
+        <div class="sp-meta-row"><span>Genre</span><b>${esc(it.genre)}</b></div>
+      </div>
+    `;
+
+    // Wire left panel rating & notes two-way with the 3D case
+    $$('[data-pstar]', leftPanel).forEach(b => b.onclick = e => {
+      e.stopPropagation();
+      const cur = store.get('rating.' + it.id, 0);
+      const n = +b.dataset.pstar === cur ? 0 : +b.dataset.pstar;
+      setRating(it, n);
+    });
+    const spNote = $('#sp-note', leftPanel);
+    let pNoteT;
+    spNote.addEventListener('input', () => {
+      const val = spNote.value;
+      const boxTa = box && $('.notes', box);
+      if (boxTa && boxTa.value !== val) boxTa.value = val;
+      clearTimeout(pNoteT);
+      pNoteT = setTimeout(() => store.set('note.' + it.id, val), 300);
+    });
+
+    // Right panel: Watch It + Seerr/Jellyseerr connection + More Like This recommendations
+    const playable = JF && !SAMPLE_MODE && /^[0-9a-f]{32}$/i.test(it.id);
+    const jfHref = playable ? `${JF}/web/#/details?id=${encodeURIComponent(it.id)}` : (JF ? `${JF}/web/#/search.html?query=${encodeURIComponent(it.title)}` : '#');
+    const ytHref = `https://www.youtube.com/results?search_query=${encodeURIComponent(it.title + ' ' + (it.year || '') + ' official trailer')}`;
+    const seerrUrl = getSeerrUrl();
+    const recs = recommendationsFor(it);
+
+    rightPanel.innerHTML = `
+      <h3>Watch it</h3>
+      <div class="watch-actions">
+        <a class="btn-watch-primary" id="rp-stream" href="${esc(jfHref)}" ${JF ? 'target="_blank" rel="noopener"' : ''}>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12-7.5z"/></svg>
+          <span>${JF ? 'Stream on Jellyfin' : 'Flip & inspect case'}</span>
+        </a>
+        <a class="btn-watch-secondary" href="${esc(ytHref)}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3z" fill="currentColor"/></svg>
+          <span>Watch trailer on YouTube</span>
+        </a>
+      </div>
+      <div class="sp-row-action">
+        <button class="sp-row-btn" type="button" id="rp-open-case">
+          <span id="rp-open-lbl">${S.open < -60 ? 'Close case & put disc away' : 'Open case & spin disc'}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+      <div class="rec-head">
+        <h3>More like this</h3>
+        <button class="seerr-pill" type="button" id="seerr-toggle" title="Configure Jellyseerr / Seerr URL for recommendations">
+          <i class="${seerrUrl ? '' : 'unset'}"></i>
+          <span>${seerrUrl ? 'Seerr linked' : 'Connect Seerr'}</span>
+        </button>
+      </div>
+      <div class="seerr-config" id="seerr-config" hidden>
+        <p>Set your <b>Jellyseerr</b> or <b>Seerr</b> URL so clicking any recommendation opens its request page directly:</p>
+        <div class="seerr-config-row">
+          <input type="url" id="seerr-input" placeholder="http://localhost:5055" value="${esc(seerrUrl)}" aria-label="Jellyseerr or Seerr URL">
+          <button type="button" id="seerr-save">Save</button>
+        </div>
+      </div>
+      <div class="rec-list" id="rec-list">
+        ${recs.map((r, idx) => {
+          const pal = r.pal || PALETTES[(hash(r.title) + idx) % PALETTES.length];
+          const href = buildSeerrHref(r);
+          const thumbImg = r.poster ? `<img src="posters/${encodeURIComponent(r.poster)}" alt="" loading="lazy">` : `<span class="rec-thumb-dot"></span><span class="rec-thumb-t">${esc(r.title)}</span>`;
+          return `<a class="rec-item" href="${esc(href)}" data-tmdb="${esc(r.tmdb || '')}" data-type="${esc(r.type || 'movie')}" data-title="${esc(r.title)}" ${seerrUrl ? 'target="_blank" rel="noopener"' : ''}>
+            <div class="rec-thumb" style="--rc-bg:${pal[0]};--rc-fg:${pal[1]};--rc-ac:${pal[2]}">${thumbImg}</div>
+            <div class="rec-info">
+              <span class="rec-title">${esc(r.title)}</span>
+              <span class="rec-sub">${r.year || ''} · ${esc(r.rt || (r.type === 'show' ? 'Series' : 'Film'))}</span>
+            </div>
+            <span class="rec-seerr-tag">Seerr ↗</span>
+          </a>`;
+        }).join('')}
+      </div>
+    `;
+
+    const rpStream = $('#rp-stream', rightPanel);
+    if (!JF) {
+      rpStream.onclick = e => { e.preventDefault(); flipCover(); };
+    }
+    $('#rp-open-case', rightPanel).onclick = () => toggleOpen();
+
+    const seerrCfg = $('#seerr-config', rightPanel);
+    const seerrInput = $('#seerr-input', rightPanel);
+    $('#seerr-toggle', rightPanel).onclick = () => {
+      seerrCfg.hidden = !seerrCfg.hidden;
+      if (!seerrCfg.hidden) seerrInput.focus();
+    };
+    const saveSeerr = () => {
+      const v = seerrInput.value.trim().replace(/\/+$/, '');
+      store.set('seerrUrl', v);
+      renderPanels(it);
+      tick('lift');
+    };
+    $('#seerr-save', rightPanel).onclick = saveSeerr;
+    seerrInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveSeerr(); } });
+
+    $$('.rec-item', rightPanel).forEach(link => {
+      link.addEventListener('click', e => {
+        const base = getSeerrUrl();
+        if (!base) {
+          e.preventDefault();
+          seerrCfg.hidden = false;
+          seerrInput.focus();
+          const p = $('p', seerrCfg);
+          if (p) p.innerHTML = `Enter your <b>Jellyseerr / Seerr</b> URL to open <b>${esc(link.dataset.title)}</b> (<code>/${link.dataset.type === 'show' ? 'tv' : 'movie'}/${esc(link.dataset.tmdb || '')}</code>):`;
+          tick('lift');
+        }
+      });
+    });
+
+    // Update bottom bar stream button
+    if (JF) {
+      playBtn.href = jfHref;
+      playBtn.target = '_blank';
+      playLbl.textContent = 'Stream on Jellyfin';
+      playBtn.onclick = null;
+    } else if (seerrUrl) {
+      playBtn.href = buildSeerrHref(it);
+      playBtn.target = '_blank';
+      playLbl.textContent = 'Open in Seerr';
+      playBtn.onclick = null;
+    } else {
+      playBtn.href = ytHref;
+      playBtn.target = '_blank';
+      playLbl.textContent = 'Watch trailer';
+      playBtn.onclick = null;
+    }
+  }
+
+  function setRating(it, n) {
+    store.set('rating.' + it.id, n);
+    if (box) $$('.stars button', box).forEach(x => x.classList.toggle('on', +x.dataset.star <= n));
+    $$('[data-pstar]', leftPanel).forEach(x => x.classList.toggle('on', +x.dataset.pstar <= n));
+    updateStageMeta(it);
+    tick('lift');
+  }
+
+  let lifting = false;
+  function pickUp(it, slot) {
+    if (!it || current || putBack.busy) return;
+    current = it;
+    returnFocus = slot;
+    if (drag) {
+      if (drag.captured) {
+        try { st3d.releasePointerCapture(drag.id); } catch {}
+      }
+      drag = null;
+    }
+    hoverRx = hoverRy = curHoverRx = curHoverRy = 0;
+    st3d.classList.remove('grabbing');
+    stage.classList.remove('case-open', 'show-mobile-panels');
+    stage.style.pointerEvents = '';
+    stopInertia();
+    mover.innerHTML = shellHTML(it, true);
+    box = $('.box', mover);
+    lid = $('.lid', box);
+    faces = {
+      front: $('.f-front', box), back: $('.f-back', box), left: $('.f-left', box), right: $('.f-right', box),
+      top: $('.f-top', box), bottom: $('.f-bottom', box), tray: $('.f-tray', box), inner: $('.f-inner', box)
+    };
+    updateStageMeta(it);
+    setOpenUI(false);
+    wireCase(it);
+    renderPanels(it);
+
+    stage.hidden = false;
+    layoutStage();
+    const r = slot ? slot.getBoundingClientRect() : { left: innerWidth / 2 - 60, top: innerHeight / 2 - 80, width: 124, height: 174 };
+    const cx = innerWidth / 2, cy = innerHeight / 2 - 34;
+    // Start at the shelf slot, turned slightly as if being pulled off the shelf, then sweep forward & spin into the close-up BingeBrowse hero angle
+    Object.assign(S, {
+      tx: r.left + r.width / 2 - cx,
+      ty: r.top + r.height / 2 - cy,
+      tz: -140,
+      s: r.width / W,
+      rx: 10,
+      ry: 58,
+      open: 0,
+      shift: 0,
+      pop: 0
+    });
+    syncTargets();
+    apply();
+    if (slot) slot.classList.add('out');
+    requestAnimationFrame(() => stage.classList.add('in'));
+    tick('lift');
+    pickupTime = performance.now();
+    lifting = true;
+    tween({ tx: 0, ty: 0, tz: 28, s: 1, rx: -3.5, ry: -24 }, 860, easeOut, 110).then(() => {
+      lifting = false;
+      $('#st-flip').focus({ preventScroll: true });
+    });
+  }
+
+  async function stepCase(dir) {
+    if (!current || putBack.busy || lifting) return;
+    const list = visible();
+    if (list.length < 2) return;
+    const idx = list.findIndex(x => x.id === current.id);
+    const nextIt = list[(idx + dir + list.length) % list.length];
+    if (!nextIt || nextIt.id === current.id) return;
+
+    const prevSlot = slotFor(current.id);
+    if (prevSlot) prevSlot.classList.remove('out');
+    current = nextIt;
+    const nextSlot = slotFor(nextIt.id);
+    if (nextSlot) {
+      nextSlot.classList.add('out');
+      returnFocus = nextSlot;
+    }
+
+    if (box) box.classList.remove('disc-out');
+    setOpenUI(false);
+    tick('lift');
+    mover.innerHTML = shellHTML(nextIt, true);
+    box = $('.box', mover);
+    lid = $('.lid', box);
+    faces = {
+      front: $('.f-front', box), back: $('.f-back', box), left: $('.f-left', box), right: $('.f-right', box),
+      top: $('.f-top', box), bottom: $('.f-bottom', box), tray: $('.f-tray', box), inner: $('.f-inner', box)
+    };
+    box.style.setProperty('--w', W + 'px');
+    box.style.setProperty('--h', H + 'px');
+    box.style.setProperty('--d', Dp + 'px');
+    updateStageMeta(nextIt);
+    wireCase(nextIt);
+    renderPanels(nextIt);
+
+    Object.assign(S, { tx: dir * 95, ty: 0, tz: -40, s: .9, rx: -2, ry: dir > 0 ? 38 : -78, open: 0, shift: 0, pop: 0 });
+    syncTargets();
+    apply();
+    tween({ tx: 0, ty: 0, tz: 28, s: 1, rx: -3.5, ry: -24 }, 540, easeOut, 45);
+  }
+
+  async function putBack() {
+    if (!current || putBack.busy) return;
+    putBack.busy = true;
+    lifting = false;
+    ++toggleSeq;
+
+    // Immediately stop any active drag, release pointer capture, reset cursor
+    if (drag) {
+      if (drag.captured) {
+        try { st3d.releasePointerCapture(drag.id); } catch {}
+      }
+      drag = null;
+    }
+    hoverRx = hoverRy = curHoverRx = curHoverRy = 0;
+    st3d.classList.remove('grabbing');
+    document.body.style.cursor = '';
+    stage.style.pointerEvents = 'none';
+    stopInertia();
+
+    if (document.activeElement) {
+      try { document.activeElement.blur(); } catch {}
+    }
+
+    const it = current;
+    if (box) box.classList.remove('disc-out');
+    setOpenUI(false);
+    S.ry = ((S.ry % 360) + 540) % 360 - 180;
+    syncTargets();
+    stage.classList.remove('in', 'case-open', 'show-mobile-panels');
+    const slot = slotFor(it.id);
+    const r = slot && slot.getBoundingClientRect();
+    const onScreen = r && r.bottom > 0 && r.top < innerHeight;
+    if (onScreen) {
+      const cx = innerWidth / 2, cy = innerHeight / 2 - 34;
+      await tween({
+        tx: r.left + r.width / 2 - cx,
+        ty: r.top + r.height / 2 - cy,
+        tz: 0,
+        s: r.width / W,
+        rx: 0,
+        ry: 0,
+        open: 0,
+        shift: 0,
+        pop: 0
+      }, 520, easeInOut);
+    } else {
+      await tween({
+        s: .2,
+        ty: innerHeight * .6,
+        tz: 0,
+        rx: 0,
+        ry: 0,
+        open: 0,
+        shift: 0,
+        pop: 0
+      }, 400, easeInOut);
+    }
+    tick('drop');
+    if (slot) {
+      slot.classList.remove('out');
+      slot.style.setProperty('--hy', '0deg');
+      slot.style.setProperty('--hx', '0deg');
+    }
+    stage.hidden = true;
+    stage.style.pointerEvents = '';
+    st3d.classList.remove('grabbing');
+    mover.innerHTML = '';
+    box = null; lid = null; faces = {}; current = null; putBack.busy = false;
+    Object.assign(S, { tx: 0, ty: 0, tz: 0, s: 1, rx: 0, ry: 0, open: 0, shift: 0, pop: 0 });
+    syncTargets();
+    const focusEl = slotFor(it.id);
+    if (focusEl) focusEl.focus({ preventScroll: true });
+  }
+
+  function setOpenUI(open) {
+    openBtn.setAttribute('aria-pressed', open);
+    $('span', openBtn).textContent = open ? 'Close case' : 'Open case';
+    stage.classList.toggle('case-open', open);
+    const rpLbl = $('#rp-open-lbl', rightPanel);
+    if (rpLbl) rpLbl.textContent = open ? 'Close case & put disc away' : 'Open case & spin disc';
+  }
+  let toggleSeq = 0, pickupTime = 0;
+  async function toggleOpen() {
+    if (!current || putBack.busy) return;
+    const seq = ++toggleSeq;
+    const open = S.open > -60;
+    setOpenUI(open);
+    tick('hinge');
+    if (open) {
+      if (box) box.classList.remove('disc-out');
+      await tween({ tx: 0, ty: 0, tz: 18, s: .94, open: -158, shift: W * .46, rx: -3, ry: nearest(S.ry, 6), pop: 0 }, 760);
+      if (seq !== toggleSeq || !current) return;
+      if (S.open < -100) {
+        tick('lift');
+        await tween({ pop: 1 }, 600);
+        if (seq !== toggleSeq || !box) return;
+        if (S.pop > .9) box.classList.add('disc-out');
+      }
+    } else {
+      if (box) box.classList.remove('disc-out');
+      if (S.pop > .01) await tween({ pop: 0 }, 260, easeInOut);
+      if (seq !== toggleSeq || !current) return;
+      await tween({ tx: 0, ty: 0, tz: 28, s: 1, open: 0, shift: 0, rx: -3.5, ry: nearest(S.ry, -24) }, 640, easeInOut);
+    }
+  }
+
+  async function show(face) {
+    // Back cover zooms in slightly and faces nearly square-on so reading the back insert is effortless
+    const targets = {
+      front: { rx: -3.5, ry: -24, tz: 28, s: 1 },
+      back:  { rx: -1, ry: 172, tz: 58, s: 1.04 },
+      spine: { rx: -3, ry: 76, tz: 28, s: 1 }
+    };
+    const t = targets[face] || targets.front;
+    tick('lift');
+    if (S.open < -1 && face !== 'front') {
+      setOpenUI(false);
+      if (box) box.classList.remove('disc-out');
+      if (S.pop > .01) await tween({ pop: 0 }, 240, easeInOut);
+      tween({ tx: 0, ty: 0, tz: t.tz, s: t.s, open: 0, shift: 0, rx: t.rx, ry: nearest(S.ry, t.ry) }, 720, easeInOut, 40);
+      return;
+    }
+    tween({ tx: 0, ty: 0, tz: t.tz, s: t.s, rx: t.rx, ry: nearest(S.ry, t.ry) }, 720, easeInOut, 40);
+  }
+
+  function flipCover() {
+    if (!current || putBack.busy) return;
+    const ryN = ((S.ry % 360) + 540) % 360 - 180;
+    const isBack = Math.abs(ryN) > 95;
+    show(isBack ? 'front' : 'back');
+  }
+
+  function wireCase(it) {
+    $$('.stars button', box).forEach(b => b.onclick = e => {
+      if (suppressClick) return;
+      e.stopPropagation();
+      const cur = store.get('rating.' + it.id, 0);
+      const n = +b.dataset.star === cur ? 0 : +b.dataset.star;
+      setRating(it, n);
+    });
+    const ta = $('.notes', box), saved = $('.notes-saved', box);
+    let nT;
+    ta.addEventListener('click', e => e.stopPropagation());
+    ta.addEventListener('input', () => {
+      const spNote = $('#sp-note', leftPanel);
+      if (spNote && spNote.value !== ta.value) spNote.value = ta.value;
+      clearTimeout(nT);
+      nT = setTimeout(() => { store.set('note.' + it.id, ta.value); saved.textContent = 'Saved'; setTimeout(() => saved.textContent = '', 1200); }, 400);
+    });
+    const discBtn = $('.disc', box);
+    if (discBtn) {
+      let spinDeg = 0;
+      discBtn.onclick = e => {
+        if (suppressClick) return;
+        e.stopPropagation();
+        spinDeg += 540 + (hash(it.id + spinDeg) % 360);
+        $('.disc-body', discBtn).style.setProperty('--spin', spinDeg + 'deg');
+        tick('spin');
+      };
+    }
+  }
+
+  /* smooth damped drag, cursor-reactive float/tilt & trackpad/wheel spin with momentum */
+  let drag = null, vx = 0, vy = 0, inertia = 0, lastFrame = 0, suppressClick = false;
+  function stopInertia() { cancelAnimationFrame(inertia); inertia = 0; vx = vy = 0; }
+  function startSpinLoop() {
+    if (inertia || putBack.busy || !current) return;
+    lastFrame = performance.now();
+    const run = now => {
+      if (putBack.busy || !current) { inertia = 0; return; }
+      const dt = Math.min(2.5, Math.max(0.25, (now - lastFrame) / 16.667));
+      lastFrame = now;
+      if (!drag && !REDUCE) {
+        vx *= Math.pow(.92, dt);
+        vy *= Math.pow(.86, dt);
+        targetRy += vx * dt;
+        targetRx = Math.max(-65, Math.min(65, targetRx + vy * dt));
+      }
+      const alpha = REDUCE ? 1 : (1 - Math.pow(1 - .22, dt));
+      S.ry += (targetRy - S.ry) * alpha;
+      S.rx += (targetRx - S.rx) * alpha;
+      curHoverRx += (hoverRx - curHoverRx) * (alpha * .65);
+      curHoverRy += (hoverRy - curHoverRy) * (alpha * .65);
+      if (!putBack.busy && !lifting) {
+        S.tx += (0 - S.tx) * alpha;
+        S.ty += (0 - S.ty) * alpha;
+      }
+      apply();
+      if (drag || Math.abs(targetRy - S.ry) > .015 || Math.abs(targetRx - S.rx) > .015 || Math.abs(hoverRx - curHoverRx) > .02 || Math.abs(hoverRy - curHoverRy) > .02 || (!putBack.busy && !lifting && (Math.abs(S.tx) > .5 || Math.abs(S.ty) > .5)) || Math.abs(vx) > .015 || Math.abs(vy) > .015) {
+        inertia = requestAnimationFrame(run);
+      } else {
+        S.ry = targetRy; S.rx = targetRx;
+        curHoverRx = hoverRx; curHoverRy = hoverRy;
+        if (!putBack.busy && !lifting) { S.tx = 0; S.ty = 0; }
+        apply();
+        inertia = 0;
+      }
+    };
+    inertia = requestAnimationFrame(run);
+  }
+  st3d.addEventListener('dragstart', e => e.preventDefault());
+  st3d.addEventListener('selectstart', e => { if (!e.target.closest('textarea, input')) e.preventDefault(); });
+  st3d.addEventListener('pointerdown', e => {
+    if (!current || putBack.busy || lifting || e.button > 0 || e.target.closest('textarea, a, input')) return;
+    if (!e.target.closest('button')) e.preventDefault();
+    cancelTween();
+    S.rx += curHoverRx; S.ry += curHoverRy;
+    hoverRx = hoverRy = curHoverRx = curHoverRy = 0;
+    syncTargets();
+    vx = vy = 0;
+    suppressClick = false;
+    drag = { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, t: performance.now(), id: e.pointerId, captured: false };
+    startSpinLoop();
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!current || putBack.busy) return;
+    if (!drag && !lifting && !REDUCE && e.pointerType === 'mouse') {
+      const nx = (e.clientX / innerWidth) - .5;
+      const ny = (e.clientY / innerHeight) - .5;
+      hoverRy = nx * 9;
+      hoverRx = -ny * 6;
+      if (!raf) startSpinLoop();
+    }
+  });
+  st3d.addEventListener('pointermove', e => {
+    if (putBack.busy || !drag || e.pointerId !== drag.id) return;
+    const now = performance.now(), dt = Math.max(6, now - drag.t);
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.captured && Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) > 4) {
+      drag.captured = true;
+      suppressClick = true;
+      try { st3d.setPointerCapture(drag.id); } catch {}
+      st3d.classList.add('grabbing');
+      window.getSelection()?.removeAllRanges();
+    }
+    const stepY = dx * .24, stepX = -dy * .16;
+    targetRy += stepY;
+    targetRx = Math.max(-65, Math.min(65, targetRx + stepX));
+    const instVx = (stepY / dt) * 16.667, instVy = (stepX / dt) * 16.667;
+    vx = vx * .45 + instVx * .55;
+    vy = vy * .45 + instVy * .55;
+    drag.x = e.clientX; drag.y = e.clientY; drag.t = now;
+    startSpinLoop();
+  });
+  const endDrag = e => {
+    if (!drag || (e && e.pointerId !== undefined && e.pointerId !== drag.id)) return;
+    if (drag.captured) {
+      try { st3d.releasePointerCapture(drag.id); } catch {}
+    }
+    const idle = performance.now() - drag.t;
+    if (idle > 65) { vx = 0; vy = 0; }
+    drag = null;
+    st3d.classList.remove('grabbing');
+    setTimeout(() => { suppressClick = false; }, 0);
+    if (!putBack.busy && current) startSpinLoop();
   };
-  sort.onchange = () => {
-    cards.sort(sort.value === 'title'
-      ? (a, b) => a.dataset.title.localeCompare(b.dataset.title)
-      : (a, b) => b.dataset.date.localeCompare(a.dataset.date));
-    grid.prepend(...cards);
-  };
-  q.oninput = apply;
-  for (const f of document.querySelectorAll('header form')) f.onsubmit = () => {
-    const b = f.querySelector('button');
-    b.disabled = true;
-    b.textContent = 'Working…';
-  };
+  st3d.addEventListener('pointerup', endDrag);
+  st3d.addEventListener('pointercancel', endDrag);
+  st3d.addEventListener('lostpointercapture', () => {
+    if (drag) {
+      drag = null;
+      st3d.classList.remove('grabbing');
+      setTimeout(() => { suppressClick = false; }, 0);
+    }
+  });
+  window.addEventListener('pointerup', endDrag);
+  window.addEventListener('pointercancel', endDrag);
+  st3d.addEventListener('wheel', e => {
+    if (!current || putBack.busy || lifting || e.target.closest('textarea, .stage-panel')) return;
+    e.preventDefault();
+    cancelTween();
+    syncTargets();
+    const scale = e.deltaMode === 1 ? 16 : (e.deltaMode === 2 ? 100 : 1);
+    const raw = (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * scale;
+    const clamped = Math.max(-90, Math.min(90, raw));
+    targetRy += clamped * .14;
+    startSpinLoop();
+  }, { passive: false });
+
+  st3d.addEventListener('click', e => {
+    if (suppressClick || putBack.busy || lifting || !current) return;
+    if (e.button !== 0) return;
+    if (performance.now() - pickupTime < 420) return;
+    if (e.target.closest('button, a, textarea, input, .stage-bottom, .stage-panel, .stage-close, .stage-nav, .stars')) return;
+    // Clicking the backdrop outside the 3D box puts the case back; clicking the 3D box flips front/back cover (or closes if open)
+    if (!e.target.closest('.box')) {
+      putBack();
+      return;
+    }
+    if (S.open < -60) toggleOpen();
+    else flipCover();
+  });
+
+  $('#st-close').onclick = putBack;
+  flipBtn.onclick = flipCover;
+  openBtn.onclick = toggleOpen;
+  prevBtn.onclick = () => stepCase(-1);
+  nextBtn.onclick = () => stepCase(1);
+
+  addEventListener('keydown', e => {
+    if (!current || putBack.busy) return;
+    const tag = e.target.tagName;
+    const isInput = tag === 'TEXTAREA' || tag === 'INPUT';
+    const isTyping = isInput && document.activeElement === e.target;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (document.activeElement) document.activeElement.blur();
+      putBack();
+      return;
+    }
+    if (e.key === ' ' || e.code === 'Space') {
+      if (isTyping) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (document.activeElement) document.activeElement.blur();
+      putBack();
+      return;
+    }
+    if (isTyping) return;
+    const k = e.key.toLowerCase();
+    if (k === 'arrowleft') { e.preventDefault(); tween({ ry: S.ry - 45 }, 380); }
+    else if (k === 'arrowright') { e.preventDefault(); tween({ ry: S.ry + 45 }, 380); }
+    else if (k === 'arrowup') { e.preventDefault(); tween({ rx: Math.min(70, S.rx + 20) }, 380); }
+    else if (k === 'arrowdown') { e.preventDefault(); tween({ rx: Math.max(-70, S.rx - 20) }, 380); }
+    else if (e.key === '[') { e.preventDefault(); stepCase(-1); }
+    else if (e.key === ']') { e.preventDefault(); stepCase(1); }
+    else if (k === 'o') toggleOpen();
+    else if (k === 'f') show('front');
+    else if (k === 'b') flipCover();
+    else if (k === 's') show('spine');
+    else if (e.key === 'Tab') {
+      const f = $$('button:not([hidden]), a:not([hidden]), textarea, input', stage).filter(el => el.offsetParent !== null || el.closest('.mover'));
+      if (!f.length) return;
+      const i = f.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    }
+  });
+
+  render();
 })();
 </script>
 </body>

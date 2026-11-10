@@ -52,7 +52,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
           labels: |
-            org.opencontainers.image.description=A tiny self-hosted poster grid of everything you've watched on Jellyfin
+            org.opencontainers.image.description=Everything you've watched on Jellyfin, as a 3D shelf of cases in a cozy cabin. Self-hosted, no accounts
             org.opencontainers.image.licenses=MIT
       - name: Build (and push on version tags)
         uses: docker/build-push-action@v6
