@@ -1172,11 +1172,16 @@ kbd {
 .stage.in .stage-panel.left, .stage.in .stage-panel.right {
   transform: translate(0, -50%);
 }
-.stage.case-open .stage-panel.left {
-  opacity: .18;
+/* An open case is about twice as wide and fills the space between the panels, so the panels
+   step aside towards the screen edges until it closes. Stream and Close stay on the bottom card. */
+.stage.case-open .stage-panel.left, .stage.case-open .stage-panel.right {
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transform: translate(-28px, -50%) scale(.97);
+  transition: opacity .28s var(--ease-out), transform .4s var(--ease-out), visibility 0s linear .4s;
 }
+.stage.case-open .stage-panel.left { transform: translate(-56px, -50%) scale(.97); }
+.stage.case-open .stage-panel.right { transform: translate(56px, -50%) scale(.97); }
 
 .stage-panel h3 {
   margin: 20px 0 8px;
@@ -3191,7 +3196,7 @@ kbd {
     else if (k === 'b') flipCover();
     else if (k === 's') show('spine');
     else if (e.key === 'Tab') {
-      const f = $$('button:not([hidden]), a:not([hidden]), textarea, input', stage).filter(el => el.offsetParent !== null || el.closest('.mover'));
+      const f = $$('button:not([hidden]), a:not([hidden]), textarea, input', stage).filter(el => (el.offsetParent !== null || el.closest('.mover')) && getComputedStyle(el).visibility !== 'hidden');
       if (!f.length) return;
       const i = f.indexOf(document.activeElement);
       if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
