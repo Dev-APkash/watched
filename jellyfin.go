@@ -54,7 +54,7 @@ type item struct {
 	ProviderIds    map[string]string // e.g. {"Imdb": "tt0111161", "Tmdb": "278"}; needs fields=ProviderIds
 	// Episode numbering
 	ParentIndexNumber *int // season
-	IndexNumber       *int // episode
+	IndexNumber       *int // episode, or a season's own number
 	UserData          struct {
 		Played            bool
 		PlayCount         int

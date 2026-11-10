@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -34,6 +35,58 @@ type entry struct {
 	PosterURL string            `json:"posterUrl,omitempty"` // set for posters that don't come from Jellyfin
 	Ext       map[string]string `json:"ext,omitempty"`       // external ids ("imdb", "tmdb", "tvdb") for matching
 	Episodes  []string          `json:"episodes,omitempty"`  // shows: watched episodes as "S01E02"
+	// SeasonTotals counts each season's episodes, keyed by season number. Only Jellyfin knows
+	// these; shows imported from Trakt alone have none.
+	SeasonTotals map[int]int `json:"seasonTotals,omitempty"`
+}
+
+// seasonProgress is how far through one season the user is. Total is 0 when unknown.
+type seasonProgress struct{ N, Played, Total int }
+
+// Seasons lists progress per season in order, from the watched episodes and the season totals.
+// Specials (season 0) are listed only once one has been watched; other seasons are listed
+// even when none of their episodes has been.
+func (e entry) Seasons() []seasonProgress {
+	if e.Type != "show" {
+		return nil
+	}
+	played := map[int]int{}
+	for _, k := range e.Episodes {
+		var s, ep int
+		if _, err := fmt.Sscanf(k, "S%dE%d", &s, &ep); err == nil {
+			played[s]++
+		}
+	}
+	nums := map[int]bool{}
+	for n := range played {
+		nums[n] = true
+	}
+	for n := range e.SeasonTotals {
+		if n > 0 {
+			nums[n] = true
+		}
+	}
+	var out []seasonProgress
+	for _, n := range slices.Sorted(maps.Keys(nums)) {
+		p := seasonProgress{N: n, Played: played[n]}
+		if t := e.SeasonTotals[n]; t > 0 {
+			p.Total = max(t, p.Played)
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// SeasonsAttr encodes Seasons for the page as "season:played:total" items, e.g. "1:10:10,2:4:10".
+func (e entry) SeasonsAttr() string {
+	var b strings.Builder
+	for i, p := range e.Seasons() {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		fmt.Fprintf(&b, "%d:%d:%d", p.N, p.Played, p.Total)
+	}
+	return b.String()
 }
 
 func (e entry) Completed() bool { return e.Type == "show" && e.Played >= e.Total }
@@ -165,6 +218,7 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 		played, plays int
 		first, last   time.Time
 		episodes      []string
+		bySeason      map[int]int // played episodes per season number
 	}
 	bySeries := map[string]*progress{}
 	for _, ep := range episodes {
@@ -173,7 +227,7 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 		}
 		p := bySeries[ep.SeriesID]
 		if p == nil {
-			p = &progress{}
+			p = &progress{bySeason: map[int]int{}}
 			bySeries[ep.SeriesID] = p
 		}
 		p.played++
@@ -185,8 +239,36 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 		if !t.IsZero() && (p.first.IsZero() || t.Before(p.first)) {
 			p.first = t
 		}
-		if ep.ParentIndexNumber != nil && ep.IndexNumber != nil {
-			p.episodes = append(p.episodes, epKey(*ep.ParentIndexNumber, *ep.IndexNumber))
+		if ep.ParentIndexNumber != nil {
+			p.bySeason[*ep.ParentIndexNumber]++
+			if ep.IndexNumber != nil {
+				p.episodes = append(p.episodes, epKey(*ep.ParentIndexNumber, *ep.IndexNumber))
+			}
+		}
+	}
+
+	// Each season's unplayed count, added to its played episodes, gives the season's size.
+	// /Items can't filter by series, so this lists every season and skips unwatched series.
+	seasonTotals := map[string]map[int]int{}
+	if len(bySeries) > 0 {
+		q = base()
+		q.Del("isPlayed")
+		q.Set("includeItemTypes", "Season")
+		q.Set("enableImages", "false")
+		seasons, err := jf.items(ctx, q)
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range seasons {
+			p := bySeries[s.SeriesID]
+			if p == nil || s.IndexNumber == nil || s.UserData.UnplayedItemCount == nil {
+				continue
+			}
+			if seasonTotals[s.SeriesID] == nil {
+				seasonTotals[s.SeriesID] = map[int]int{}
+			}
+			n := *s.IndexNumber
+			seasonTotals[s.SeriesID][n] = p.bySeason[n] + *s.UserData.UnplayedItemCount
 		}
 	}
 
@@ -217,6 +299,7 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 				ID: s.ID, Type: "show", Title: s.Name, Year: s.ProductionYear,
 				LastPlayed: p.last, FirstPlayed: p.first, Plays: p.plays, Played: p.played, Total: p.played + unplayed,
 				PosterTag: s.ImageTags["Primary"], Ext: externalIDs(s.ProviderIds), Episodes: p.episodes,
+				SeasonTotals: seasonTotals[s.ID],
 			})
 		}
 	}
@@ -286,6 +369,16 @@ func merge(jf, imported []entry) []entry {
 				}
 			}
 			e.Episodes = eps
+			if len(t.SeasonTotals) > 0 {
+				totals := maps.Clone(e.SeasonTotals)
+				if totals == nil {
+					totals = map[int]int{}
+				}
+				for n, c := range t.SeasonTotals {
+					totals[n] = max(totals[n], c)
+				}
+				e.SeasonTotals = totals
+			}
 			e.Total = max(e.Total, t.Total, e.Played)
 			e.Plays = max(e.Plays, e.Played)
 		}

@@ -48,6 +48,7 @@ The container runs as an unprivileged user on a [distroless](https://github.com/
 - **More like this.** Recommendations link to your [Jellyseerr / Seerr](#jellyseerr--seerr) so you can request them.
 - Shows appear once you've watched an episode, with progress like `12 / 24 episodes`, and are marked complete when you've seen them all.
 - **Rewatches count.** A film shows how many times you've seen it. A show shows when you started it and how many episode plays were repeats.
+- **Progress per season.** A show lists each season ("S1–S3 ✓ · S4 4/10 · S5 not started"), and the episode dots on the back cover are grouped by season.
 - Filter (Everything / Films / Series), sort by recently watched, title or release year, and search instantly. **Pick one for me** pulls a random case.
 - Keyboard: `[` and `]` step through the shelf, arrow keys turn the case, `F` / `B` / `S` show the front / back / spine, `O` opens and closes the case, `Space` or `Esc` puts it back.
 - Phone and desktop layouts. Respects *reduce motion*: the backdrop becomes a still picture.
@@ -316,6 +317,10 @@ Set `TZ` to your time zone, e.g. `TZ=America/New_York`.
 ### A show says 3 / 10 episodes but I've seen more
 
 Watched counts episodes Jellyfin has marked as *played* for that user. Jellyfin counts an episode you stopped partway through (before about 90%) as unplayed. Missing (virtual) episodes and, for Trakt imports, specials are not counted.
+
+### A season shows a count of episodes but no total
+
+Season sizes come from Jellyfin. A show that's only in your Trakt import shows how many episodes of each season you watched ("S2 4 eps"), because Trakt's history doesn't include season sizes. After an upgrade, totals appear after the next sync.
 
 ### A show's "Started" date is later than I remember
 
