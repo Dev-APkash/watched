@@ -2582,11 +2582,21 @@ kbd {
   }
 
   let raf = 0, targetRx = 0, targetRy = 0;
-  let activeTweenRes = null;
+  let activeTweenRes = null, activeTo = null;
+  // Depth and size a grabbed tween was heading for. The spin loop eases the case there, so grabbing
+  // a case mid-flight (e.g. while it's still coming off the shelf) doesn't leave it stuck halfway.
+  let landing = null;
+  function landOnGrab() {
+    if (!raf || !activeTo) return false;
+    landing = {};
+    for (const k of ['tz', 's']) if (k in activeTo) landing[k] = activeTo[k];
+    return true;
+  }
   const syncTargets = () => { targetRx = S.rx; targetRy = S.ry; };
   const easeOut = k => 1 - Math.pow(1 - k, 4);
   const easeInOut = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
   function cancelTween() {
+    activeTo = null;
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
     if (activeTweenRes) {
       const res = activeTweenRes;
@@ -2597,8 +2607,14 @@ kbd {
   function tween(to, ms, ease = easeOut, zArc = 0) {
     cancelTween();
     stopInertia();
+    // A new tween owns the keys it animates; the rest of an unfinished landing carries on after it.
+    if (landing) {
+      for (const k in to) delete landing[k];
+      if (!Object.keys(landing).length) landing = null;
+    }
     return new Promise(res => {
       activeTweenRes = res;
+      activeTo = to;
       if (REDUCE) ms = Math.min(ms, 120);
       const from = { ...S }, t0 = performance.now();
       const step = now => {
@@ -2616,8 +2632,10 @@ kbd {
           raf = requestAnimationFrame(step);
         } else {
           raf = 0;
+          activeTo = null;
           if (activeTweenRes === res) activeTweenRes = null;
           res();
+          if (landing) startSpinLoop();
         }
       };
       raf = requestAnimationFrame(step);
@@ -2924,6 +2942,7 @@ kbd {
     if (!current || putBack.busy) return;
     putBack.busy = true;
     lifting = false;
+    landing = null;
     ++toggleSeq;
 
     // Immediately stop any active drag, release pointer capture, reset cursor
@@ -3118,8 +3137,17 @@ kbd {
         S.tx += (0 - S.tx) * alpha;
         S.ty += (0 - S.ty) * alpha;
       }
+      if (landing && !putBack.busy) {
+        let done = true;
+        for (const k in landing) {
+          S[k] += (landing[k] - S[k]) * alpha;
+          if (Math.abs(landing[k] - S[k]) > (k === 's' ? .002 : .3)) done = false;
+          else S[k] = landing[k];
+        }
+        if (done) landing = null;
+      }
       apply();
-      if (drag || Math.abs(targetRy - S.ry) > .015 || Math.abs(targetRx - S.rx) > .015 || Math.abs(hoverRx - curHoverRx) > .02 || Math.abs(hoverRy - curHoverRy) > .02 || (!putBack.busy && !lifting && (Math.abs(S.tx) > .5 || Math.abs(S.ty) > .5)) || Math.abs(vx) > .015 || Math.abs(vy) > .015) {
+      if (drag || Math.abs(targetRy - S.ry) > .015 || Math.abs(targetRx - S.rx) > .015 || Math.abs(hoverRx - curHoverRx) > .02 || Math.abs(hoverRy - curHoverRy) > .02 || (!putBack.busy && !lifting && (Math.abs(S.tx) > .5 || Math.abs(S.ty) > .5)) || Math.abs(vx) > .015 || Math.abs(vy) > .015 || landing) {
         inertia = requestAnimationFrame(run);
       } else {
         S.ry = targetRy; S.rx = targetRx;
@@ -3134,15 +3162,18 @@ kbd {
   st3d.addEventListener('dragstart', e => e.preventDefault());
   st3d.addEventListener('selectstart', e => { if (!e.target.closest('textarea, input')) e.preventDefault(); });
   st3d.addEventListener('pointerdown', e => {
-    if (!current || putBack.busy || lifting || e.button > 0 || e.target.closest('textarea, a, input')) return;
+    if (!current || putBack.busy || e.button > 0 || e.target.closest('textarea, a, input')) return;
     if (!e.target.closest('button')) e.preventDefault();
+    // A press while the case is still coming off the shelf grabs it straight away; releasing
+    // that press shouldn't also flip it.
+    const midLift = lifting;
     // The second press of a double-click must not cut short what the first click started (opening or closing).
-    if (e.detail < 2) cancelTween();
+    if (e.detail < 2) { landOnGrab(); cancelTween(); }
     S.rx += curHoverRx; S.ry += curHoverRy;
     hoverRx = hoverRy = curHoverRx = curHoverRy = 0;
     syncTargets();
     vx = vy = 0;
-    suppressClick = false;
+    suppressClick = midLift;
     drag = { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, t: performance.now(), id: e.pointerId, captured: false };
     startSpinLoop();
   });
@@ -3200,8 +3231,9 @@ kbd {
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
   st3d.addEventListener('wheel', e => {
-    if (!current || putBack.busy || lifting || e.target.closest('textarea, .stage-panel')) return;
+    if (!current || putBack.busy || e.target.closest('textarea, .stage-panel')) return;
     e.preventDefault();
+    landOnGrab();
     cancelTween();
     syncTargets();
     const scale = e.deltaMode === 1 ? 16 : (e.deltaMode === 2 ? 100 : 1);
