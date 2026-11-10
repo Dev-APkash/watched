@@ -781,6 +781,8 @@ kbd {
 .eps-grid { display: flex; flex-wrap: wrap; gap: .9cqw; }
 .eps-grid i { width: 2.6cqw; height: 2.6cqw; border-radius: .5cqw; background: var(--rule); }
 .eps-grid i.on { background: var(--plastic-blue); }
+.eps-grid.by-season { gap: .9cqw 2.6cqw; }
+.eps-season { display: flex; flex-wrap: wrap; gap: .9cqw; }
 .eps-bar { height: 2cqw; border-radius: 2cqw; background: var(--rule); overflow: hidden; }
 .eps-bar span { display: block; height: 100%; background: var(--plastic-blue); }
 .stars { display: flex; align-items: center; gap: .6cqw; margin-top: auto; }
@@ -1330,6 +1332,8 @@ kbd {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+.sp-season { white-space: nowrap; }
+.sp-season-sep { color: var(--t3); font-weight: 600; }
 
 /* Right panel: Watch It + Seerr + More Like This */
 .watch-actions {
@@ -1824,7 +1828,7 @@ kbd {
 <script type="application/json" id="marks">{{json .Marks}}</script>
 <div id="data" hidden>
 {{- range .Items}}
-  <i data-id="{{.ID}}" data-type="{{.Type}}" data-title="{{.Title}}" data-year="{{.Year}}" data-date="{{iso .LastPlayed}}"{{if not .FirstPlayed.IsZero}} data-first="{{iso .FirstPlayed}}"{{end}} data-plays="{{.Plays}}" data-poster="{{.Poster}}" data-played="{{.Played}}" data-total="{{.Total}}" data-completed="{{.Completed}}"{{if .Ext}} data-tmdb="{{index .Ext "tmdb"}}" data-imdb="{{index .Ext "imdb"}}"{{end}}></i>
+  <i data-id="{{.ID}}" data-type="{{.Type}}" data-title="{{.Title}}" data-year="{{.Year}}" data-date="{{iso .LastPlayed}}"{{if not .FirstPlayed.IsZero}} data-first="{{iso .FirstPlayed}}"{{end}} data-plays="{{.Plays}}" data-poster="{{.Poster}}" data-played="{{.Played}}" data-total="{{.Total}}" data-completed="{{.Completed}}"{{with .SeasonsAttr}} data-seasons="{{.}}"{{end}}{{if .Ext}} data-tmdb="{{index .Ext "tmdb"}}" data-imdb="{{index .Ext "imdb"}}"{{end}}></i>
 {{- end}}
 </div>
 
@@ -1985,6 +1989,34 @@ kbd {
     return ['Last watched', fmtDate(it.date) + (it.type !== 'show' && it.plays > 1 ? ` · ${timesTxt(it.plays).toLowerCase()}` : '')];
   };
 
+  // Seasons arrive as "season:played:total" items; a total of 0 means unknown (Trakt-only shows).
+  const parseSeasons = s => (s || '').split(',').map(x => x.split(':').map(Number))
+    .filter(([n, p, t]) => Number.isInteger(n) && p >= 0 && t >= 0).map(([n, played, total]) => ({ n, played, total }));
+  const seasonDone = s => s.total > 0 && s.played >= s.total;
+  const seasonName = n => n === 0 ? 'Specials' : `S${n}`;
+  // "S1–S3 ✓ · S4 4/10 · S5–S9 not started": runs of finished or unstarted seasons fold into
+  // one item so long shows stay short.
+  const seasonsText = seasons => {
+    const parts = [];
+    const runEnd = (i, test) => {
+      let j = i;
+      while (j + 1 < seasons.length && seasons[j + 1].n === seasons[j].n + 1 && test(seasons[j + 1])) j++;
+      return j;
+    };
+    const unstarted = s => s.total > 0 && s.played === 0;
+    for (let i = 0; i < seasons.length; i++) {
+      const s = seasons[i];
+      const fold = s.n > 0 && (seasonDone(s) ? seasonDone : unstarted(s) ? unstarted : null);
+      const j = fold ? runEnd(i, fold) : i;
+      const name = seasonName(s.n) + (j > i ? '–' + seasonName(seasons[j].n) : '');
+      if (seasonDone(s)) parts.push(`${name} ✓`);
+      else if (j > i) parts.push(`${name} not started`);
+      else parts.push(s.total ? `${name} ${s.played}/${s.total}` : `${name} ${s.played} ep${s.played === 1 ? '' : 's'}`);
+      i = j;
+    }
+    return parts.map(p => `<span class="sp-season">${esc(p)}</span>`).join('<span class="sp-season-sep"> · </span>');
+  };
+
   /* ---------------- data ---------------- */
   const PALETTES = [
     ['#efe4cf', '#1f1b16', '#d4462a'], ['#1e2b3b', '#f2ead9', '#e8b04a'], ['#2f4a3b', '#efe7d2', '#e07b39'],
@@ -1992,6 +2024,12 @@ kbd {
     ['#c8d6ce', '#1e2b27', '#b5432f'], ['#5b2333', '#f7efe2', '#f2b880'], ['#d9dfe8', '#14213d', '#fca311']
   ];
 
+  // Real season sizes for the sample series, watched in order.
+  const SAMPLE_SEASONS = { 'Twin Peaks': [8, 22], 'Severance': [9, 10], 'Succession': [10, 10, 10, 9] };
+  const sampleSeasons = (sizes, played) => (sizes || []).map((total, i) => {
+    const before = sizes.slice(0, i).reduce((a, b) => a + b, 0);
+    return { n: i + 1, played: Math.max(0, Math.min(total, played - before)), total };
+  });
   const SAMPLE = [
     ['Seven Samurai', 1954, 'Akira Kurosawa'], ['Mulholland Drive', 2001, 'David Lynch'], ['8½', 1963, 'Federico Fellini'],
     ['In the Mood for Love', 2000, 'Wong Kar-wai'], ['Parasite', 2019, 'Bong Joon-ho'], ['Twin Peaks', 1990, 'Lynch & Frost', 30, 30],
@@ -2070,6 +2108,7 @@ kbd {
             played: parseInt(el.dataset.played, 10) || 0,
             total: parseInt(el.dataset.total, 10) || 0,
             completed: el.dataset.completed === 'true',
+            seasons: parseSeasons(el.dataset.seasons),
             tmdb: el.dataset.tmdb || '',
             imdb: el.dataset.imdb || ''
           };
@@ -2090,6 +2129,7 @@ kbd {
         played: played || 0,
         total: total || 0,
         completed: total ? played >= total : true,
+        seasons: sampleSeasons(SAMPLE_SEASONS[title], played),
         tmdb: META[title]?.tmdb ? String(META[title].tmdb) : ''
       }))
     };
@@ -2252,8 +2292,13 @@ kbd {
     let eps = '';
     if (series && it.total) {
       const pct = Math.min(100, Math.round(it.played / it.total * 100));
-      const viz = it.total <= 60
-        ? `<div class="eps-grid">${Array.from({ length: it.total }, (_, i) => `<i class="${i < it.played ? 'on' : ''}"></i>`).join('')}</div>`
+      // With every season's size known, the dots are grouped by season; otherwise one run.
+      const bySeason = it.seasons.length > 1 && it.seasons.every(s => s.total) && it.seasons.reduce((a, s) => a + s.total, 0) <= 60;
+      const dots = (n, on) => Array.from({ length: n }, (_, i) => `<i class="${i < on ? 'on' : ''}"></i>`).join('');
+      const viz = bySeason
+        ? `<div class="eps-grid by-season">${it.seasons.map(s => `<span class="eps-season" title="${seasonName(s.n)}: ${s.played} of ${s.total}">${dots(s.total, s.played)}</span>`).join('')}</div>`
+        : it.total <= 60
+        ? `<div class="eps-grid">${dots(it.total, it.played)}</div>`
         : `<div class="eps-bar"><span style="width:${pct}%"></span></div>`;
       eps = `<div><div class="eps-head"><b>${it.played}</b> of <b>${it.total}</b> episodes</div>${viz}</div>`;
     }
@@ -2617,6 +2662,7 @@ kbd {
       <div class="sp-meta-table">
         ${historyRows(it).map(([k, v]) => `<div class="sp-meta-row"><span>${k}</span><b>${v}</b></div>`).join('')}
         <div class="sp-meta-row"><span>Status</span><b>${esc(status)}</b></div>
+        ${series && it.seasons.length ? `<div class="sp-meta-row"><span>${it.seasons.length === 1 ? 'Season' : 'Seasons'}</span><b class="sp-seasons">${seasonsText(it.seasons)}</b></div>` : ''}
         ${it.country ? `<div class="sp-meta-row"><span>Country</span><b>${esc(it.country)}</b></div>` : ''}
         ${it.genre ? `<div class="sp-meta-row"><span>Genre</span><b>${esc(it.genre)}</b></div>` : ''}
       </div>

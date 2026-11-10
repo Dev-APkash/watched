@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -36,6 +37,14 @@ const (
 	 {"Name":"Show A","Id":"sA","Type":"Series","ProductionYear":2010,"ImageTags":{"Primary":"tagA"},"ProviderIds":{"Tvdb":"121361"},"UserData":{"UnplayedItemCount":0,"Played":true}},
 	 {"Name":"Show B","Id":"sB","Type":"Series","ProductionYear":2020,"ImageTags":{"Primary":"tagB"},"UserData":{"UnplayedItemCount":3,"Played":false}}]`
 
+	// Seasons of every series in the library, watched or not.
+	seasonsJSON = `[
+	 {"Name":"Season 1","Id":"s1","Type":"Season","SeriesId":"sA","IndexNumber":1,"UserData":{"UnplayedItemCount":0}},
+	 {"Name":"Season 1","Id":"s2","Type":"Season","SeriesId":"sB","IndexNumber":1,"UserData":{"UnplayedItemCount":2}},
+	 {"Name":"Season 2","Id":"s3","Type":"Season","SeriesId":"sB","IndexNumber":2,"UserData":{"UnplayedItemCount":1}},
+	 {"Name":"Season Unknown","Id":"s4","Type":"Season","SeriesId":"sB","UserData":{"UnplayedItemCount":5}},
+	 {"Name":"Season 1","Id":"s5","Type":"Season","SeriesId":"sZ","IndexNumber":1,"UserData":{"UnplayedItemCount":8}}]`
+
 	viewsJSON = `{"Items":[{"Name":"Movies","Id":"lib1","CollectionType":"movies"},{"Name":"Adult","Id":"lib2"}]}`
 
 	// Played items inside library lib2.
@@ -60,7 +69,7 @@ func fakeJellyfin(t *testing.T) *httptest.Server {
 			if q.Get("userId") != "a1b2c3" {
 				t.Errorf("missing or wrong userId: %q", q.Get("userId"))
 			}
-			src := map[string]string{"Movie": moviesJSON, "Episode": episodesJSON}[q.Get("includeItemTypes")]
+			src := map[string]string{"Movie": moviesJSON, "Episode": episodesJSON, "Season": seasonsJSON}[q.Get("includeItemTypes")]
 			switch {
 			case q.Get("parentId") == "lib2":
 				src = hiddenJSON
@@ -163,6 +172,15 @@ func TestFetchWatched(t *testing.T) {
 	}
 	if got := strings.Join(items[0].Episodes, ","); got != "S01E01,S01E02" {
 		t.Errorf("Show A episodes = %s", got)
+	}
+	// Show A: one fully watched season. Show B's watched episode has no season number,
+	// so its seasons show as unstarted; the numberless season and unwatched series are skipped.
+	seasons := func(e entry) string { return fmt.Sprint(e.Seasons()) }
+	if got := seasons(items[0]); got != "[{1 2 2}]" {
+		t.Errorf("Show A seasons = %s", got)
+	}
+	if got := seasons(items[3]); got != "[{1 0 2} {2 0 1}]" {
+		t.Errorf("Show B seasons = %s", got)
 	}
 	// Plays count rewatches; a missing PlayCount on a played item counts as one play.
 	plays := []int{3, 1, 3, 1, 1} // Show A: Pilot twice + Two; Brazil has no PlayCount
