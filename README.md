@@ -47,6 +47,7 @@ The container runs as an unprivileged user on a [distroless](https://github.com/
 - **Watch it.** **Stream on Jellyfin** opens the title in your Jellyfin. There's a trailer search link too.
 - **More like this.** Recommendations link to your [Jellyseerr / Seerr](#jellyseerr--seerr) so you can request them.
 - Shows appear once you've watched an episode, with progress like `12 / 24 episodes`, and are marked complete when you've seen them all.
+- **Rewatches count.** A film shows how many times you've seen it. A show shows when you started it and how many episode plays were repeats.
 - Filter (Everything / Films / Series), sort by recently watched, title or release year, and search instantly. **Pick one for me** pulls a random case.
 - Keyboard: `[` and `]` step through the shelf, arrow keys turn the case, `F` / `B` / `S` show the front / back / spine, `Space` or `Esc` puts it back.
 - Phone and desktop layouts. Respects *reduce motion*: the backdrop becomes a still picture.
@@ -315,6 +316,14 @@ Set `TZ` to your time zone, e.g. `TZ=America/New_York`.
 ### A show says 3 / 10 episodes but I've seen more
 
 Watched counts episodes Jellyfin has marked as *played* for that user. Jellyfin counts an episode you stopped partway through (before about 90%) as unplayed. Missing (virtual) episodes and, for Trakt imports, specials are not counted.
+
+### A show's "Started" date is later than I remember
+
+Jellyfin keeps only the *latest* time you played each episode, so if you rewatched the first episodes, the start date moves to that rewatch. Trakt keeps every play, so a Trakt import fixes it: Watched uses the earliest date from either.
+
+### Rewatch counts look low, or a film says "Once" when I've seen it more
+
+Jellyfin counts plays it saw itself, and a film marked as watched by hand counts as one. If you also used Trakt, Watched shows the higher of the two counts. It doesn't add them, because Trakt often holds the same plays scrobbled from Jellyfin.
 
 ### A title appears twice after a Trakt import
 

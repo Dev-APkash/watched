@@ -18,17 +18,22 @@ import (
 
 // entry is one card on the page: a watched movie or a series with at least one watched episode.
 type entry struct {
-	ID         string            `json:"id"`
-	Type       string            `json:"type"` // "movie" or "show"
-	Title      string            `json:"title"`
-	Year       int               `json:"year,omitempty"`
-	LastPlayed time.Time         `json:"lastPlayed"`
-	Played     int               `json:"played,omitempty"` // shows: episodes watched
-	Total      int               `json:"total,omitempty"`  // shows: episodes available
-	PosterTag  string            `json:"posterTag,omitempty"`
-	PosterURL  string            `json:"posterUrl,omitempty"` // set for posters that don't come from Jellyfin
-	Ext        map[string]string `json:"ext,omitempty"`       // external ids ("imdb", "tmdb", "tvdb") for matching
-	Episodes   []string          `json:"episodes,omitempty"`  // shows: watched episodes as "S01E02"
+	ID         string    `json:"id"`
+	Type       string    `json:"type"` // "movie" or "show"
+	Title      string    `json:"title"`
+	Year       int       `json:"year,omitempty"`
+	LastPlayed time.Time `json:"lastPlayed"`
+	// FirstPlayed is the earliest watch on record: for shows, the oldest episode play.
+	// Jellyfin keeps only each episode's latest play, so a rewatched episode can move it later.
+	FirstPlayed time.Time `json:"firstPlayed,omitzero"`
+	// Plays counts every play, rewatches included: for shows, all episode plays.
+	Plays     int               `json:"plays,omitempty"`
+	Played    int               `json:"played,omitempty"` // shows: episodes watched
+	Total     int               `json:"total,omitempty"`  // shows: episodes available
+	PosterTag string            `json:"posterTag,omitempty"`
+	PosterURL string            `json:"posterUrl,omitempty"` // set for posters that don't come from Jellyfin
+	Ext       map[string]string `json:"ext,omitempty"`       // external ids ("imdb", "tmdb", "tvdb") for matching
+	Episodes  []string          `json:"episodes,omitempty"`  // shows: watched episodes as "S01E02"
 }
 
 func (e entry) Completed() bool { return e.Type == "show" && e.Played >= e.Total }
@@ -144,8 +149,8 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 		}
 		out = append(out, entry{
 			ID: m.ID, Type: "movie", Title: m.Name, Year: m.ProductionYear,
-			LastPlayed: m.UserData.LastPlayedDate.Time, PosterTag: m.ImageTags["Primary"],
-			Ext: externalIDs(m.ProviderIds),
+			LastPlayed: m.UserData.LastPlayedDate.Time, Plays: max(m.UserData.PlayCount, 1),
+			PosterTag: m.ImageTags["Primary"], Ext: externalIDs(m.ProviderIds),
 		})
 	}
 
@@ -157,9 +162,9 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 		return nil, err
 	}
 	type progress struct {
-		played   int
-		last     time.Time
-		episodes []string
+		played, plays int
+		first, last   time.Time
+		episodes      []string
 	}
 	bySeries := map[string]*progress{}
 	for _, ep := range episodes {
@@ -172,8 +177,13 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 			bySeries[ep.SeriesID] = p
 		}
 		p.played++
-		if t := ep.UserData.LastPlayedDate.Time; t.After(p.last) {
+		p.plays += max(ep.UserData.PlayCount, 1)
+		t := ep.UserData.LastPlayedDate.Time
+		if t.After(p.last) {
 			p.last = t
+		}
+		if !t.IsZero() && (p.first.IsZero() || t.Before(p.first)) {
+			p.first = t
 		}
 		if ep.ParentIndexNumber != nil && ep.IndexNumber != nil {
 			p.episodes = append(p.episodes, epKey(*ep.ParentIndexNumber, *ep.IndexNumber))
@@ -205,7 +215,7 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 			slices.Sort(p.episodes)
 			out = append(out, entry{
 				ID: s.ID, Type: "show", Title: s.Name, Year: s.ProductionYear,
-				LastPlayed: p.last, Played: p.played, Total: p.played + unplayed,
+				LastPlayed: p.last, FirstPlayed: p.first, Plays: p.plays, Played: p.played, Total: p.played + unplayed,
 				PosterTag: s.ImageTags["Primary"], Ext: externalIDs(s.ProviderIds), Episodes: p.episodes,
 			})
 		}
@@ -257,6 +267,11 @@ func merge(jf, imported []entry) []entry {
 		if t.LastPlayed.After(e.LastPlayed) {
 			e.LastPlayed = t.LastPlayed
 		}
+		if !t.FirstPlayed.IsZero() && (e.FirstPlayed.IsZero() || t.FirstPlayed.Before(e.FirstPlayed)) {
+			e.FirstPlayed = t.FirstPlayed
+		}
+		// Not added together: Trakt often holds the same plays, scrobbled from Jellyfin.
+		e.Plays = max(e.Plays, t.Plays)
 		if e.Type == "show" {
 			seen := map[string]bool{}
 			for _, k := range e.Episodes {
@@ -272,6 +287,7 @@ func merge(jf, imported []entry) []entry {
 			}
 			e.Episodes = eps
 			e.Total = max(e.Total, t.Total, e.Played)
+			e.Plays = max(e.Plays, e.Played)
 		}
 	}
 	sortRecent(out)
