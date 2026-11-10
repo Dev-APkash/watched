@@ -3049,6 +3049,8 @@ kbd {
       return;
     }
     if (isTyping) return;
+    // Leave browser shortcuts alone: Ctrl+F is find, Cmd+[ is back, and so on. Shift+Tab still reaches the focus trap.
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toLowerCase();
     if (k === 'arrowleft') { e.preventDefault(); tween({ ry: S.ry - 45 }, 380); }
     else if (k === 'arrowright') { e.preventDefault(); tween({ ry: S.ry + 45 }, 380); }
