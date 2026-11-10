@@ -1979,13 +1979,16 @@ kbd {
     it.pal = p;
     it.sp = p[0]; it.sf = p[1];
     it.layout = (hash(it.title + '*') % 4);
-    const m = META[it.title] || {};
+    // The sample metadata describes the sample shelf only; matched by title, it would mislabel real titles that share a name.
+    const m = (SAMPLE_MODE && META[it.title]) || {};
     it.syn = m.syn || `${it.title}${it.year ? ' (' + it.year + ')' : ''} is catalogued in ${USER ? USER + '’s' : 'this'} personal watched shelf as entry No. ${it.no}. Flip to the back cover or open the case to inspect your watch history and liner notes.`;
-    it.rt = m.rt || (it.type === 'show' ? `${it.total || it.played || 10} eps` : '2h 04m');
-    it.cert = m.cert || (it.type === 'show' ? 'TV-14' : 'PG-13');
-    it.score = m.score || (7.4 + (hash(it.title + 's') % 15) / 10).toFixed(1);
-    it.country = m.country || 'US';
-    it.genre = m.genre || (it.type === 'show' ? 'Drama, Series' : 'Drama, Cinema');
+    // Only show facts we actually have; never invent a runtime, certificate, score, country or genre.
+    const eps = it.total || it.played;
+    it.rt = m.rt || (it.type === 'show' && eps ? `${eps} eps` : '');
+    it.cert = m.cert || '';
+    it.score = m.score || '';
+    it.country = m.country || '';
+    it.genre = m.genre || '';
     it.cast = m.cast || [];
     if (!it.tmdb && m.tmdb) it.tmdb = String(m.tmdb);
   });
@@ -2135,7 +2138,7 @@ kbd {
       <div class="bk-still" ${still}></div>
       <div class="bk-body">
         <h3 class="bk-title">${esc(it.title)}</h3>
-        <div class="bk-meta">${it.year || 'Year unknown'} · ${kind} · ${esc(it.rt || '')} · No. ${it.no}</div>
+        <div class="bk-meta">${[it.year || 'Year unknown', kind, esc(it.rt), `No. ${it.no}`].filter(Boolean).join(' · ')}</div>
         <p class="bk-syn">${esc(it.syn || '')}</p>
         <dl class="bk-facts">
           <dt>Last watched</dt><dd>${fmtDate(it.date)}</dd>
@@ -2433,13 +2436,13 @@ kbd {
 
   function updateStageMeta(it) {
     const rating = store.get('rating.' + it.id, 0);
-    const scoreText = rating ? `★ ${rating}/5` : `★ ${it.score}/10`;
+    const scoreText = rating ? `★ ${rating}/5` : (it.score ? `★ ${esc(it.score)}/10` : '');
     $('#st-title').textContent = it.title;
     $('#st-meta').innerHTML = [
       it.year ? `<span>${it.year}</span>` : '',
       it.rt ? `<span>· ${esc(it.rt)}</span>` : '',
-      `<span class="sb-badge">${esc(it.cert || (it.type === 'show' ? 'TV' : 'NR'))}</span>`,
-      `<span class="sb-star">${scoreText}</span>`,
+      it.cert ? `<span class="sb-badge">${esc(it.cert)}</span>` : '',
+      scoreText ? `<span class="sb-star">${scoreText}</span>` : '',
       `<span>· No. ${it.no}</span>`
     ].filter(Boolean).join(' ');
   }
@@ -2483,8 +2486,8 @@ kbd {
       <div class="sp-meta-table">
         <div class="sp-meta-row"><span>Last watched</span><b>${fmtDate(it.date)}</b></div>
         <div class="sp-meta-row"><span>Status</span><b>${esc(status)}</b></div>
-        <div class="sp-meta-row"><span>Country</span><b>${esc(it.country)}</b></div>
-        <div class="sp-meta-row"><span>Genre</span><b>${esc(it.genre)}</b></div>
+        ${it.country ? `<div class="sp-meta-row"><span>Country</span><b>${esc(it.country)}</b></div>` : ''}
+        ${it.genre ? `<div class="sp-meta-row"><span>Genre</span><b>${esc(it.genre)}</b></div>` : ''}
       </div>
     `;
 
