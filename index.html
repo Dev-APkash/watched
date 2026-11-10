@@ -1135,13 +1135,13 @@ kbd {
 }
 
 /* Paper cards either side of the case, nav buttons and the bottom strip */
-.stage-panel, .stage-bottom, .stage-close, .stage-nav {
+.stage-panel, .stage-bottom, .stage-close {
   position: absolute;
   z-index: 5;
   opacity: 0;
   transition: opacity .42s var(--ease-out) .14s, transform .52s var(--ease-out) .14s;
 }
-.stage.in .stage-panel, .stage.in .stage-bottom, .stage.in .stage-close, .stage.in .stage-nav {
+.stage.in .stage-panel, .stage.in .stage-bottom, .stage.in .stage-close {
   opacity: 1;
 }
 .stage-panel {
@@ -1535,30 +1535,6 @@ kbd {
   flex: none;
 }
 
-/* Prev / Next round buttons flanking the case */
-.stage-nav {
-  top: calc(50% - 30px);
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: 2.5px solid var(--line);
-  background: var(--cream);
-  color: var(--t1);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  box-shadow: inset 0 -4px 0 rgba(59, 34, 24, .14), 0 14px 26px -10px rgba(10, 4, 1, .8);
-  transform: translateY(-50%) scale(.92);
-  transition: opacity .35s var(--ease-out) .15s, transform .25s var(--ease-out), background .2s;
-}
-.stage.in .stage-nav { transform: translateY(-50%) scale(1); }
-.stage-nav:hover {
-  background: var(--flame);
-  transform: translateY(-50%) scale(1.07);
-}
-.stage-nav svg { width: 19px; height: 19px; }
-.stage-nav.prev { left: calc(50% - var(--half-case, 210px) - 62px); }
-.stage-nav.next { right: calc(50% - var(--half-case, 210px) - 62px); }
 
 /* Bottom title strip and case controls */
 .stage-bottom {
@@ -1580,9 +1556,34 @@ kbd {
 .stage.in .stage-bottom { transform: translate(-50%, 0); }
 .sb-head {
   display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.sb-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
   gap: 3px;
 }
+.sb-nav { flex: none; display: flex; gap: 6px; }
+.sb-nav-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--cream-2);
+  color: var(--t1);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: inset 0 -3px 0 rgba(59, 34, 24, .16);
+  transition: background .2s, transform .2s var(--ease-out), box-shadow .2s;
+}
+.sb-nav-btn:hover { background: var(--flame); transform: translateY(-1px); }
+.sb-nav-btn:active { transform: translateY(1px); box-shadow: inset 0 -1px 0 rgba(59, 34, 24, .16); }
+.sb-nav-btn:focus-visible { outline: 2px solid var(--sofa); outline-offset: 2px; }
+.sb-nav-btn svg { width: 16px; height: 16px; }
 .sb-head h2 {
   margin: 0;
   font: 400 21px/1.15 var(--display);
@@ -1683,8 +1684,6 @@ kbd {
 }
 @media (max-width: 640px) {
   .stage-close { right: 14px; top: 14px; }
-  .stage-nav.prev { left: 10px; }
-  .stage-nav.next { right: 10px; }
   .stage-bottom { bottom: 12px; padding: 10px 12px; width: calc(100vw - 24px); }
   .sync { width: 100%; }
   .toolbar-in { gap: 8px; padding: 8px; }
@@ -1832,14 +1831,6 @@ kbd {
   <!-- Left BingeBrowse-style Synopsis, Cast & Log Panel -->
   <aside class="stage-panel left" id="st-left" aria-label="Title details"></aside>
 
-  <!-- Prev / Next Case Navigation Chevrons -->
-  <button class="stage-nav prev" id="st-prev" type="button" aria-label="Previous title on shelf" title="Previous title ([)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-  </button>
-  <button class="stage-nav next" id="st-next" type="button" aria-label="Next title on shelf" title="Next title (])">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-  </button>
-
   <!-- Right BingeBrowse-style Watch Actions & More Like This (Seerr / Jellyseerr) Panel -->
   <aside class="stage-panel right" id="st-right" aria-label="Watch and recommendations"></aside>
 
@@ -1848,8 +1839,19 @@ kbd {
   <!-- Bottom Center Title & Controls Pill -->
   <footer class="stage-bottom" id="st-bottom">
     <div class="sb-head">
-      <h2 id="st-title"></h2>
-      <p class="sb-meta" id="st-meta"></p>
+      <div class="sb-title">
+        <h2 id="st-title"></h2>
+        <p class="sb-meta" id="st-meta"></p>
+      </div>
+      <!-- Prev / next live on the title card, so they never cover the case, however it is opened or turned -->
+      <div class="sb-nav" role="group" aria-label="Browse the shelf">
+        <button class="sb-nav-btn" id="st-prev" type="button" aria-label="Previous title on shelf" title="Previous title ([)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button class="sb-nav-btn" id="st-next" type="button" aria-label="Next title on shelf" title="Next title (])">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
     </div>
     <div class="sb-actions" role="toolbar" aria-label="Case controls">
       <a class="sb-btn primary" id="st-play" href="#" target="_blank" rel="noopener">
@@ -2452,7 +2454,6 @@ kbd {
     Dp = Math.round(W * .108);
     mover.style.width = W + 'px'; mover.style.height = H + 'px';
     mover.style.marginLeft = -W / 2 + 'px'; mover.style.marginTop = -H / 2 + 'px';
-    stage.style.setProperty('--half-case', Math.round(W / 2) + 'px');
     if (box) { box.style.setProperty('--w', W + 'px'); box.style.setProperty('--h', H + 'px'); box.style.setProperty('--d', Dp + 'px'); }
     apply();
   }
@@ -3132,7 +3133,7 @@ kbd {
     if (suppressClick || putBack.busy || lifting || !current) return;
     if (e.button !== 0) return;
     if (performance.now() - pickupTime < 420) return;
-    if (e.target.closest('button, a, textarea, input, .stage-bottom, .stage-panel, .stage-close, .stage-nav, .stars')) return;
+    if (e.target.closest('button, a, textarea, input, .stage-bottom, .stage-panel, .stage-close, .stars')) return;
     // Clicking the backdrop outside the 3D box puts the case back; clicking the 3D box flips front/back cover (or closes if open)
     if (!e.target.closest('.box')) {
       putBack();
