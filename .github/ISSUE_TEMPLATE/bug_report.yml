@@ -1,0 +1,55 @@
+name: Bug report
+description: Something isn't working
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Check the [FAQ / troubleshooting](https://github.com/Dev-APkash/watched#faq--troubleshooting) section first.
+        **Don't paste your API key, Trakt tokens or private URLs.** For security problems, use [private reporting](https://github.com/Dev-APkash/watched/security) instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Edition
+      options:
+        - Watched 2 (:2 / :latest)
+        - Watched 1 lite (:1)
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or image tag
+      placeholder: e.g. v2.0.0
+  - type: dropdown
+    id: install
+    attributes:
+      label: How do you run it?
+      options:
+        - Docker Compose
+        - docker run
+        - Binary / go run
+        - Other
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Output of `-check` or the container logs. Remove anything private.
+      render: text
