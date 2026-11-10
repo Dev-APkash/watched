@@ -117,6 +117,19 @@ func TestTraktWatched(t *testing.T) {
 			t.Errorf("item %d:\n got  %+v\n want %+v", i, got, w)
 		}
 	}
+	// Plays include rewatches and plays from before a reset, but not specials.
+	for i, w := range []struct {
+		plays int
+		first string
+	}{{2, ""}, {3, "2023-01-02"}, {2, "2021-01-01"}, {1, ""}} {
+		first := ""
+		if !items[i].FirstPlayed.IsZero() {
+			first = items[i].FirstPlayed.Format(time.DateOnly)
+		}
+		if items[i].Plays != w.plays || first != w.first {
+			t.Errorf("item %d (%s): plays %d first %q, want %d %q", i, items[i].Title, items[i].Plays, first, w.plays, w.first)
+		}
+	}
 	if items[0].Poster() != "traktmovie1-aa11jpgwebp.webp" {
 		t.Errorf("poster file = %q", items[0].Poster())
 	}
@@ -141,14 +154,14 @@ func TestTraktErrors(t *testing.T) {
 func TestMerge(t *testing.T) {
 	day := func(d int) time.Time { return time.Date(2024, 1, d, 0, 0, 0, 0, time.UTC) }
 	jf := []entry{
-		{ID: "m1", Type: "movie", Title: "Arrival", LastPlayed: day(5), PosterTag: "t", Ext: map[string]string{"imdb": "tt2543164"}},
-		{ID: "sA", Type: "show", Title: "Show A", LastPlayed: day(3), Played: 2, Total: 2,
+		{ID: "m1", Type: "movie", Title: "Arrival", LastPlayed: day(5), Plays: 1, PosterTag: "t", Ext: map[string]string{"imdb": "tt2543164"}},
+		{ID: "sA", Type: "show", Title: "Show A", LastPlayed: day(3), FirstPlayed: day(2), Plays: 2, Played: 2, Total: 2,
 			Episodes: []string{"S01E01", "S01E02"}, Ext: map[string]string{"tvdb": "121361"}},
 		{ID: "m9", Type: "movie", Title: "Same TMDB number, different kind", LastPlayed: day(1), Ext: map[string]string{"tmdb": "10"}},
 	}
 	tr := []entry{
-		{ID: "trakt-movie-1", Type: "movie", Title: "Arrival", LastPlayed: day(9), PosterURL: "https://x.trakt.tv/a.webp", Ext: map[string]string{"imdb": "tt2543164", "tmdb": "329865"}},
-		{ID: "trakt-show-10", Type: "show", Title: "Show A", LastPlayed: day(1), Played: 2, Total: 3,
+		{ID: "trakt-movie-1", Type: "movie", Title: "Arrival", LastPlayed: day(9), Plays: 2, PosterURL: "https://x.trakt.tv/a.webp", Ext: map[string]string{"imdb": "tt2543164", "tmdb": "329865"}},
+		{ID: "trakt-show-10", Type: "show", Title: "Show A", LastPlayed: day(1), FirstPlayed: day(1), Plays: 2, Played: 2, Total: 3,
 			Episodes: []string{"S01E01", "S01E03"}, Ext: map[string]string{"tvdb": "121361", "tmdb": "10"}},
 		{ID: "trakt-movie-2", Type: "movie", Title: "Old Film", LastPlayed: day(2)},
 	}
@@ -166,6 +179,9 @@ func TestMerge(t *testing.T) {
 	}
 	if showA.Played != 3 || showA.Total != 3 || !showA.Completed() || !showA.LastPlayed.Equal(day(3)) {
 		t.Errorf("Show A should combine episodes to 3/3: %+v", showA)
+	}
+	if arrival.Plays != 2 || showA.Plays != 3 || !showA.FirstPlayed.Equal(day(1)) {
+		t.Errorf("plays should not double count and first play is the earliest: Arrival %d, Show A %d from %v", arrival.Plays, showA.Plays, showA.FirstPlayed)
 	}
 	if len(jf[1].Episodes) != 2 {
 		t.Error("merge must not modify its input")

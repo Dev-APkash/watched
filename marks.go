@@ -124,18 +124,20 @@ type backup struct {
 }
 
 type backupRecord struct {
-	ID         string            `json:"id"`
-	Type       string            `json:"type"`
-	Title      string            `json:"title"`
-	Year       int               `json:"year,omitempty"`
-	LastPlayed *time.Time        `json:"lastPlayed,omitempty"`
-	Played     int               `json:"played,omitempty"`
-	Total      int               `json:"total,omitempty"`
-	Episodes   []string          `json:"episodes,omitempty"`
-	Ext        map[string]string `json:"ext,omitempty"`
-	Rating     int               `json:"rating,omitempty"`
-	Note       string            `json:"note,omitempty"`
-	OnShelf    bool              `json:"onShelf"` // false: only a rating or note is left, the title is gone
+	ID          string            `json:"id"`
+	Type        string            `json:"type"`
+	Title       string            `json:"title"`
+	Year        int               `json:"year,omitempty"`
+	LastPlayed  *time.Time        `json:"lastPlayed,omitempty"`
+	FirstPlayed *time.Time        `json:"firstPlayed,omitempty"`
+	Plays       int               `json:"plays,omitempty"`
+	Played      int               `json:"played,omitempty"`
+	Total       int               `json:"total,omitempty"`
+	Episodes    []string          `json:"episodes,omitempty"`
+	Ext         map[string]string `json:"ext,omitempty"`
+	Rating      int               `json:"rating,omitempty"`
+	Note        string            `json:"note,omitempty"`
+	OnShelf     bool              `json:"onShelf"` // false: only a rating or note is left, the title is gone
 }
 
 // buildBackup lists every title on the shelf, then any marks whose title has left it.
@@ -147,12 +149,16 @@ func buildBackup(user string, items []entry, ms map[string]mark) backup {
 		m := ms[e.ID]
 		r := backupRecord{
 			ID: e.ID, Type: e.Type, Title: e.Title, Year: e.Year,
-			Played: e.Played, Total: e.Total, Episodes: e.Episodes, Ext: e.Ext,
+			Plays: e.Plays, Played: e.Played, Total: e.Total, Episodes: e.Episodes, Ext: e.Ext,
 			Rating: m.Rating, Note: m.Note, OnShelf: true,
 		}
 		if !e.LastPlayed.IsZero() {
 			t := e.LastPlayed.UTC()
 			r.LastPlayed = &t
+		}
+		if !e.FirstPlayed.IsZero() {
+			t := e.FirstPlayed.UTC()
+			r.FirstPlayed = &t
 		}
 		b.Items = append(b.Items, r)
 	}
@@ -177,7 +183,7 @@ func csvSafe(s string) string {
 func writeCSV(b backup) ([]byte, error) {
 	var buf bytes.Buffer
 	w := csv.NewWriter(&buf)
-	w.Write([]string{"type", "title", "year", "last_watched", "episodes_watched", "episodes_total", "rating", "note", "imdb", "tmdb", "tvdb", "on_shelf"})
+	w.Write([]string{"type", "title", "year", "first_watched", "last_watched", "plays", "episodes_watched", "episodes_total", "rating", "note", "imdb", "tmdb", "tvdb", "on_shelf"})
 	itoa := func(n int) string {
 		if n == 0 {
 			return ""
@@ -185,16 +191,18 @@ func writeCSV(b backup) ([]byte, error) {
 		return strconv.Itoa(n)
 	}
 	for _, r := range b.Items {
-		last := ""
-		if r.LastPlayed != nil {
-			last = r.LastPlayed.Format(time.RFC3339)
+		stamp := func(t *time.Time) string {
+			if t == nil {
+				return ""
+			}
+			return t.Format(time.RFC3339)
 		}
 		eps, total := "", ""
 		if r.Type == "show" {
 			eps, total = strconv.Itoa(r.Played), strconv.Itoa(r.Total)
 		}
 		w.Write([]string{
-			r.Type, csvSafe(r.Title), itoa(r.Year), last, eps, total, itoa(r.Rating), csvSafe(r.Note),
+			r.Type, csvSafe(r.Title), itoa(r.Year), stamp(r.FirstPlayed), stamp(r.LastPlayed), itoa(r.Plays), eps, total, itoa(r.Rating), csvSafe(r.Note),
 			r.Ext["imdb"], r.Ext["tmdb"], r.Ext["tvdb"], strconv.FormatBool(r.OnShelf),
 		})
 	}

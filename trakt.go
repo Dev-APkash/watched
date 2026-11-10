@@ -178,10 +178,13 @@ func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 	var out []entry
 	u := "/users/" + url.PathEscape(user)
 	err := each(ctx, t, u+"/watched/movies?extended=images", user, func(m struct {
+		Plays         int       `json:"plays"`
 		LastWatchedAt time.Time `json:"last_watched_at"`
 		Movie         traktMedia
 	}) {
-		out = append(out, m.Movie.entry("movie", m.LastWatchedAt))
+		e := m.Movie.entry("movie", m.LastWatchedAt)
+		e.Plays = max(m.Plays, 1)
+		out = append(out, e)
 	})
 	if err != nil {
 		return nil, err
@@ -213,6 +216,8 @@ func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 
 	episodes := map[int]map[string]bool{}
 	inHistory := map[int]bool{}
+	plays := map[int]int{}       // episode plays in the history, rewatches included
+	first := map[int]time.Time{} // the earliest of them
 	err = each(ctx, t, u+"/history/episodes?extended=images", user, func(h struct {
 		WatchedAt time.Time `json:"watched_at"`
 		Episode   struct{ Season, Number int }
@@ -226,6 +231,12 @@ func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 		inHistory[id] = true
 		if len(posters[id]) == 0 && len(h.Show.Images.Poster) > 0 {
 			posters[id] = h.Show.Images.Poster
+		}
+		if h.Episode.Season > 0 {
+			plays[id]++
+			if h.WatchedAt.Year() > 1970 && (first[id].IsZero() || h.WatchedAt.Before(first[id])) {
+				first[id] = h.WatchedAt
+			}
 		}
 		if h.Episode.Season == 0 || // specials aren't part of aired_episodes
 			s.ResetAt != nil && h.WatchedAt.Year() > 1970 && h.WatchedAt.Before(*s.ResetAt) {
@@ -262,6 +273,11 @@ func (t *trakt) watched(ctx context.Context, user string) ([]entry, error) {
 			}
 		}
 		e.Played, e.Total = played, max(s.Show.AiredEpisodes, played)
+		e.FirstPlayed = first[id]
+		e.Plays = max(plays[id], played)
+		if !inHistory[id] {
+			e.Plays = max(s.Plays, played)
+		}
 		out = append(out, e)
 	}
 	sortRecent(out)

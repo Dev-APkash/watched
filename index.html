@@ -1820,7 +1820,7 @@ kbd {
 <script type="application/json" id="marks">{{json .Marks}}</script>
 <div id="data" hidden>
 {{- range .Items}}
-  <i data-id="{{.ID}}" data-type="{{.Type}}" data-title="{{.Title}}" data-year="{{.Year}}" data-date="{{iso .LastPlayed}}" data-poster="{{.Poster}}" data-played="{{.Played}}" data-total="{{.Total}}" data-completed="{{.Completed}}"{{if .Ext}} data-tmdb="{{index .Ext "tmdb"}}" data-imdb="{{index .Ext "imdb"}}"{{end}}></i>
+  <i data-id="{{.ID}}" data-type="{{.Type}}" data-title="{{.Title}}" data-year="{{.Year}}" data-date="{{iso .LastPlayed}}"{{if not .FirstPlayed.IsZero}} data-first="{{iso .FirstPlayed}}"{{end}} data-plays="{{.Plays}}" data-poster="{{.Poster}}" data-played="{{.Played}}" data-total="{{.Total}}" data-completed="{{.Completed}}"{{if .Ext}} data-tmdb="{{index .Ext "tmdb"}}" data-imdb="{{index .Ext "imdb"}}"{{end}}></i>
 {{- end}}
 </div>
 
@@ -1962,6 +1962,21 @@ kbd {
   const fmtDate = d => d ? `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}` : 'Not recorded';
   const fmtMonth = d => d ? `${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}` : '';
   const num = n => n.toLocaleString();
+  const timesTxt = n => n === 1 ? 'Once' : n === 2 ? 'Twice' : `${num(n)} times`;
+  // Rows for when and how often something was watched. Plays and first dates come from the sync; older data may lack them.
+  const historyRows = it => {
+    const series = it.type === 'show', rows = [];
+    if (series && it.first) rows.push(['Started', fmtDate(it.first)]);
+    rows.push(['Last watched', fmtDate(it.date)]);
+    if (!series && it.plays) rows.push(['Seen', timesTxt(it.plays)]);
+    if (series && it.plays > it.played) rows.push(['Repeat plays', `${num(it.plays - it.played)} episode${it.plays - it.played === 1 ? '' : 's'}`]);
+    return rows;
+  };
+  // The back cover has little room, so it folds the same facts into one row and keeps space for the synopsis.
+  const backHistoryRow = it => {
+    if (it.type === 'show' && it.first && it.date && fmtDate(it.first) !== fmtDate(it.date)) return ['Watched', `${fmtDate(it.first)} – ${fmtDate(it.date)}`];
+    return ['Last watched', fmtDate(it.date) + (it.type !== 'show' && it.plays > 1 ? ` · ${timesTxt(it.plays).toLowerCase()}` : '')];
+  };
 
   /* ---------------- data ---------------- */
   const PALETTES = [
@@ -2035,12 +2050,15 @@ kbd {
         sample: false,
         items: raw.map(el => {
           const d = new Date(el.dataset.date);
+          const f = new Date(el.dataset.first || '');
           return {
             id: el.dataset.id,
             type: el.dataset.type === 'show' ? 'show' : 'movie',
             title: el.dataset.title || 'Untitled',
             year: parseInt(el.dataset.year, 10) || 0,
             date: isNaN(d) || d.getFullYear() < 1971 ? null : d,
+            first: isNaN(f) || f.getFullYear() < 1971 ? null : f,
+            plays: parseInt(el.dataset.plays, 10) || 0,
             poster: el.dataset.poster || '',
             played: parseInt(el.dataset.played, 10) || 0,
             total: parseInt(el.dataset.total, 10) || 0,
@@ -2059,6 +2077,8 @@ kbd {
         type: total ? 'show' : 'movie',
         title, year, by,
         date: new Date(now - (i * 11 + (hash(title) % 9)) * 86400000),
+        first: total ? new Date(now - (i * 11 + 40 + (hash(title) % 90)) * 86400000) : null,
+        plays: total ? played + (hash(title) % 4) : 1 + (hash(title) % 3 === 0 ? 1 + hash(by) % 2 : 0),
         poster: '',
         played: played || 0,
         total: total || 0,
@@ -2239,7 +2259,7 @@ kbd {
         <div class="bk-meta">${[it.year || 'Year unknown', kind, esc(it.rt), `No. ${it.no}`].filter(Boolean).join(' · ')}</div>
         <p class="bk-syn">${esc(it.syn || '')}</p>
         <dl class="bk-facts">
-          <dt>Last watched</dt><dd>${fmtDate(it.date)}</dd>
+          ${[backHistoryRow(it)].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}
           <dt>Status</dt><dd>${status}</dd>
           ${it.by ? `<dt>By</dt><dd>${esc(it.by)}</dd>` : ''}
         </dl>
@@ -2589,7 +2609,7 @@ kbd {
         </div>
       </div>
       <div class="sp-meta-table">
-        <div class="sp-meta-row"><span>Last watched</span><b>${fmtDate(it.date)}</b></div>
+        ${historyRows(it).map(([k, v]) => `<div class="sp-meta-row"><span>${k}</span><b>${v}</b></div>`).join('')}
         <div class="sp-meta-row"><span>Status</span><b>${esc(status)}</b></div>
         ${it.country ? `<div class="sp-meta-row"><span>Country</span><b>${esc(it.country)}</b></div>` : ''}
         ${it.genre ? `<div class="sp-meta-row"><span>Genre</span><b>${esc(it.genre)}</b></div>` : ''}

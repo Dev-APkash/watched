@@ -57,6 +57,7 @@ type item struct {
 	IndexNumber       *int // episode
 	UserData          struct {
 		Played            bool
+		PlayCount         int
 		LastPlayedDate    jfTime
 		UnplayedItemCount *int
 	}

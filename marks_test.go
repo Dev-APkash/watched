@@ -64,8 +64,8 @@ func TestSetMarks(t *testing.T) {
 func TestBackupAndCSV(t *testing.T) {
 	played := time.Date(2026, 3, 1, 20, 0, 0, 0, time.UTC)
 	items := []entry{
-		{ID: "m1", Type: "movie", Title: "=HYPERLINK(1)", Year: 2016, LastPlayed: played, Ext: map[string]string{"imdb": "tt1"}},
-		{ID: "s1", Type: "show", Title: "Dark", Played: 3, Total: 26, Episodes: []string{"S01E01", "S01E02", "S01E03"}},
+		{ID: "m1", Type: "movie", Title: "=HYPERLINK(1)", Year: 2016, LastPlayed: played, Plays: 2, Ext: map[string]string{"imdb": "tt1"}},
+		{ID: "s1", Type: "show", Title: "Dark", FirstPlayed: played, Plays: 4, Played: 3, Total: 26, Episodes: []string{"S01E01", "S01E02", "S01E03"}},
 	}
 	ms := map[string]mark{
 		"m1":   {Rating: 5, Note: "+great"},
@@ -85,10 +85,10 @@ func TestBackupAndCSV(t *testing.T) {
 	}
 	csv := string(out)
 	for _, want := range []string{
-		"type,title,year,last_watched",
-		"movie,'=HYPERLINK(1),2016,2026-03-01T20:00:00Z,,,5,'+great,tt1,,,true",
-		"show,Dark,,,3,26,,,,,,true",
-		"movie,Left the shelf,,,,,2,,,9,,false",
+		"type,title,year,first_watched,last_watched,plays,",
+		"movie,'=HYPERLINK(1),2016,,2026-03-01T20:00:00Z,2,,,5,'+great,tt1,,,true",
+		"show,Dark,,2026-03-01T20:00:00Z,,4,3,26,,,,,,true",
+		"movie,Left the shelf,,,,,,,2,,,9,,false",
 	} {
 		if !strings.Contains(csv, want) {
 			t.Errorf("CSV missing %q:\n%s", want, csv)

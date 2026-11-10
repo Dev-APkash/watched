@@ -20,14 +20,14 @@ const (
 
 	moviesJSON = `[
 	 {"Name":"Arrival","Id":"m1","Type":"Movie","ProductionYear":2016,"ImageTags":{"Primary":"tag1"},"ProviderIds":{"Imdb":"tt2543164","Tmdb":"329865"},
-	  "UserData":{"PlayCount":1,"Played":true,"LastPlayedDate":"2024-03-01T20:00:00.0000000Z","Key":"m1"}},
+	  "UserData":{"PlayCount":3,"Played":true,"LastPlayedDate":"2024-03-01T20:00:00.0000000Z","Key":"m1"}},
 	 {"Name":"Brazil","Id":"m2","Type":"Movie","ProductionYear":1985,"ImageTags":{},
 	  "UserData":{"Played":true,"LastPlayedDate":"2024-05-10T21:30:15.1234567"}},
 	 {"Name":"Coherence","Id":"m3","Type":"Movie","ImageTags":{"Primary":"tag3"},
 	  "UserData":{"Played":true,"LastPlayedDate":null}}]`
 
 	episodesJSON = `[
-	 {"Name":"Pilot","Id":"e1","Type":"Episode","SeriesId":"sA","SeriesName":"Show A","ParentIndexNumber":1,"IndexNumber":1,"UserData":{"Played":true,"LastPlayedDate":"2024-01-01T00:00:00Z"}},
+	 {"Name":"Pilot","Id":"e1","Type":"Episode","SeriesId":"sA","SeriesName":"Show A","ParentIndexNumber":1,"IndexNumber":1,"UserData":{"PlayCount":2,"Played":true,"LastPlayedDate":"2024-01-01T00:00:00Z"}},
 	 {"Name":"Two","Id":"e2","Type":"Episode","SeriesId":"sA","SeriesName":"Show A","ParentIndexNumber":1,"IndexNumber":2,"UserData":{"Played":true,"LastPlayedDate":"2024-06-01T00:00:00Z"}},
 	 {"Name":"Opener","Id":"e3","Type":"Episode","SeriesId":"sB","SeriesName":"Show B","UserData":{"Played":true,"LastPlayedDate":"2024-02-01T00:00:00Z"}},
 	 {"Name":"Orphan","Id":"e4","Type":"Episode","UserData":{"Played":true}}]`
@@ -163,6 +163,19 @@ func TestFetchWatched(t *testing.T) {
 	}
 	if got := strings.Join(items[0].Episodes, ","); got != "S01E01,S01E02" {
 		t.Errorf("Show A episodes = %s", got)
+	}
+	// Plays count rewatches; a missing PlayCount on a played item counts as one play.
+	plays := []int{3, 1, 3, 1, 1} // Show A: Pilot twice + Two; Brazil has no PlayCount
+	for i, w := range plays {
+		if items[i].Plays != w {
+			t.Errorf("item %d (%s) plays = %d, want %d", i, items[i].Title, items[i].Plays, w)
+		}
+	}
+	if got := items[0].FirstPlayed.Format(time.DateOnly); got != "2024-01-01" {
+		t.Errorf("Show A first played = %s, want its oldest episode", got)
+	}
+	if !items[1].FirstPlayed.IsZero() {
+		t.Error("Jellyfin has no first-play date for movies, so none should be made up")
 	}
 	if items[2].Ext["imdb"] != "tt2543164" || items[0].Ext["tvdb"] != "121361" {
 		t.Errorf("provider ids not parsed: %v %v", items[2].Ext, items[0].Ext)
