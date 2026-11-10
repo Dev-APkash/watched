@@ -41,7 +41,7 @@ The container runs as an unprivileged user on a [distroless](https://github.com/
 
 - **A shelf of cases.** Every watched movie and show stands on a wooden bookcase in an animated, illustrated log cabin: rain on the window, the fire going, steam off the kettle. Shelves are labelled by when you watched what's on them.
 - **Pick up any case.** It comes off the shelf in 3D. Drag to spin it, scroll to turn it, and press **B** to flip to the back cover with the synopsis, watch facts, episode progress and a barcode.
-- **Open it up.** Press **O** to swing the lid open, read the liner notes inside, and pop the disc out to spin it. Sounds are synthesized in the browser (off by default).
+- **Open it up.** Double-click the case or press **O** to swing the lid open, read the liner notes inside, and pop the disc out to spin it. Sounds are synthesized in the browser (off by default).
 - **Rate and annotate.** Give a title stars and write liner notes. Both stay in sync between the side panel and the case itself, and they're saved on your server, so they follow you to any browser.
 - **Back it up.** **Backup** downloads the whole shelf with your ratings and notes as JSON, or as a CSV for spreadsheets, and restores ratings and notes from a JSON backup.
 - **Watch it.** **Stream on Jellyfin** opens the title in your Jellyfin. There's a trailer search link too.
@@ -49,7 +49,7 @@ The container runs as an unprivileged user on a [distroless](https://github.com/
 - Shows appear once you've watched an episode, with progress like `12 / 24 episodes`, and are marked complete when you've seen them all.
 - **Rewatches count.** A film shows how many times you've seen it. A show shows when you started it and how many episode plays were repeats.
 - Filter (Everything / Films / Series), sort by recently watched, title or release year, and search instantly. **Pick one for me** pulls a random case.
-- Keyboard: `[` and `]` step through the shelf, arrow keys turn the case, `F` / `B` / `S` show the front / back / spine, `Space` or `Esc` puts it back.
+- Keyboard: `[` and `]` step through the shelf, arrow keys turn the case, `F` / `B` / `S` show the front / back / spine, `O` opens and closes the case, `Space` or `Esc` puts it back.
 - Phone and desktop layouts. Respects *reduce motion*: the backdrop becomes a still picture.
 - **Hide libraries** you don't want on the shelf (for example adult content or home videos).
 - **Coming from Trakt?** Paste your profile link once to bring your old history along.

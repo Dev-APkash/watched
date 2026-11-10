@@ -1862,7 +1862,7 @@ kbd {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H3"/></svg>
         <span id="st-flip-lbl">Back cover</span>
       </button>
-      <button class="sb-btn" type="button" id="st-open" aria-pressed="false" title="Open case and inspect disc (O)">
+      <button class="sb-btn" type="button" id="st-open" aria-pressed="false" title="Open case and inspect disc (O, or double-click the case)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/></svg>
         <span>Open case</span>
       </button>
@@ -2931,7 +2931,7 @@ kbd {
     const rpLbl = $('#rp-open-lbl', rightPanel);
     if (rpLbl) rpLbl.textContent = open ? 'Close case & put disc away' : 'Open case & spin disc';
   }
-  let toggleSeq = 0, pickupTime = 0;
+  let toggleSeq = 0, pickupTime = 0, clickedOpen = false;
   async function toggleOpen() {
     if (!current || putBack.busy) return;
     const seq = ++toggleSeq;
@@ -3136,10 +3136,18 @@ kbd {
     if (e.target.closest('button, a, textarea, input, .stage-bottom, .stage-panel, .stage-close, .stars')) return;
     // Clicking the backdrop outside the 3D box puts the case back; clicking the 3D box flips front/back cover (or closes if open)
     if (!e.target.closest('.box')) {
-      putBack();
+      if (e.detail < 2) putBack();
       return;
     }
-    if (S.open < -60) toggleOpen();
+    // Double-click opens a closed case: the first click has already started a flip, which opening cancels.
+    // On an open case the first click is already closing it, so the second one has nothing to add.
+    if (e.detail === 2) {
+      if (!clickedOpen) toggleOpen();
+      return;
+    }
+    if (e.detail > 2) return;
+    clickedOpen = S.open < -60;
+    if (clickedOpen) toggleOpen();
     else flipCover();
   });
 
