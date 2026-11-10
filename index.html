@@ -205,6 +205,19 @@ kbd {
   box-shadow: inset 0 -4px 0 rgba(59, 34, 24, .1), var(--soft-shadow);
   font: 600 13px/1.3 var(--ui);
 }
+/* Two rows, the sync status above the buttons, so the card is narrow enough to hang beside
+   the nameplate on the right instead of wrapping under it. */
+.sync {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  align-self: center;
+  padding: 11px 11px 11px 14px;
+  row-gap: 10px;
+}
+.sync > span:first-child { grid-column: 1 / -1; padding-left: 2px; }
+.sync > * { justify-self: start; }
+/* When the window is too narrow for both side by side, keep the card on the right. */
+@media (min-width: 761px) { .sync { margin-left: auto; } }
 .sync-dot {
   width: 10px;
   height: 10px;
@@ -1695,7 +1708,8 @@ kbd {
 @media (max-width: 640px) {
   .stage-close { right: 14px; top: 14px; }
   .stage-bottom { bottom: 12px; padding: 10px 12px; width: calc(100vw - 24px); }
-  .sync { width: 100%; }
+  .sync { display: flex; width: 100%; }
+  .sync > span:first-child { flex-basis: 100%; }
   .toolbar-in { gap: 8px; padding: 8px; }
   .seg button { padding: 6px 10px; font-size: 12.5px; }
   .field { padding: 0 10px; font-size: 12.5px; }
