@@ -52,6 +52,8 @@ type item struct {
 	SeriesID       string `json:"SeriesId"`
 	ImageTags      map[string]string
 	ProviderIds    map[string]string // e.g. {"Imdb": "tt0111161", "Tmdb": "278"}; needs fields=ProviderIds
+	Genres         []string          // needs fields=Genres
+	RunTimeTicks   int64             // length in 100 ns ticks; 0 when unknown
 	// Episode numbering
 	ParentIndexNumber *int // season
 	IndexNumber       *int // episode, or a season's own number

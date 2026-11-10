@@ -35,6 +35,9 @@ type entry struct {
 	PosterURL string            `json:"posterUrl,omitempty"` // set for posters that don't come from Jellyfin
 	Ext       map[string]string `json:"ext,omitempty"`       // external ids ("imdb", "tmdb", "tvdb") for matching
 	Episodes  []string          `json:"episodes,omitempty"`  // shows: watched episodes as "S01E02"
+	// Minutes is the time spent watching, rewatches included, from known runtimes only.
+	Minutes int      `json:"minutes,omitempty"`
+	Genres  []string `json:"genres,omitempty"`
 	// SeasonTotals counts each season's episodes, keyed by season number. Only Jellyfin knows
 	// these; shows imported from Trakt alone have none.
 	SeasonTotals map[int]int `json:"seasonTotals,omitempty"`
@@ -168,7 +171,7 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 	withPoster := func(q url.Values) url.Values {
 		q.Set("enableImageTypes", "Primary")
 		q.Set("imageTypeLimit", "1")
-		q.Set("fields", "ProviderIds")
+		q.Set("fields", "ProviderIds,Genres")
 		return q
 	}
 
@@ -204,6 +207,7 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 			ID: m.ID, Type: "movie", Title: m.Name, Year: m.ProductionYear,
 			LastPlayed: m.UserData.LastPlayedDate.Time, Plays: max(m.UserData.PlayCount, 1),
 			PosterTag: m.ImageTags["Primary"], Ext: externalIDs(m.ProviderIds),
+			Minutes: minutes(m.RunTimeTicks) * max(m.UserData.PlayCount, 1), Genres: m.Genres,
 		})
 	}
 
@@ -216,6 +220,7 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 	}
 	type progress struct {
 		played, plays int
+		minutes       int
 		first, last   time.Time
 		episodes      []string
 		bySeason      map[int]int // played episodes per season number
@@ -232,6 +237,7 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 		}
 		p.played++
 		p.plays += max(ep.UserData.PlayCount, 1)
+		p.minutes += minutes(ep.RunTimeTicks) * max(ep.UserData.PlayCount, 1)
 		t := ep.UserData.LastPlayedDate.Time
 		if t.After(p.last) {
 			p.last = t
@@ -299,7 +305,7 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 				ID: s.ID, Type: "show", Title: s.Name, Year: s.ProductionYear,
 				LastPlayed: p.last, FirstPlayed: p.first, Plays: p.plays, Played: p.played, Total: p.played + unplayed,
 				PosterTag: s.ImageTags["Primary"], Ext: externalIDs(s.ProviderIds), Episodes: p.episodes,
-				SeasonTotals: seasonTotals[s.ID],
+				SeasonTotals: seasonTotals[s.ID], Minutes: p.minutes, Genres: s.Genres,
 			})
 		}
 	}
@@ -307,6 +313,9 @@ func fetchWatched(ctx context.Context, jf *jellyfin, userID string, excludeLibs 
 	sortRecent(out)
 	return out, nil
 }
+
+// minutes converts Jellyfin's 100 ns ticks to whole minutes, rounded.
+func minutes(ticks int64) int { return int((ticks + 300_000_000) / 600_000_000) }
 
 func externalIDs(providerIDs map[string]string) map[string]string {
 	ext := map[string]string{}
@@ -355,6 +364,10 @@ func merge(jf, imported []entry) []entry {
 		}
 		// Not added together: Trakt often holds the same plays, scrobbled from Jellyfin.
 		e.Plays = max(e.Plays, t.Plays)
+		e.Minutes = max(e.Minutes, t.Minutes)
+		if len(e.Genres) == 0 {
+			e.Genres = t.Genres
+		}
 		if e.Type == "show" {
 			seen := map[string]bool{}
 			for _, k := range e.Episodes {
