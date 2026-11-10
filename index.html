@@ -2133,7 +2133,7 @@ kbd {
       eps = `<div><div class="eps-head"><b>${it.played}</b> of <b>${it.total}</b> episodes</div>${viz}</div>`;
     }
     const rating = store.get('rating.' + it.id, 0);
-    const stars = [1, 2, 3, 4, 5].map(n => `<button type="button" data-star="${n}" class="${n <= rating ? 'on' : ''}" aria-label="${n} star${n > 1 ? 's' : ''}">${STAR}</button>`).join('');
+    const stars = [1, 2, 3, 4, 5].map(n => `<button type="button" data-star="${n}" class="${n <= rating ? 'on' : ''}" aria-pressed="${n === rating}" aria-label="${n} star${n > 1 ? 's' : ''}">${STAR}</button>`).join('');
     return `<div class="back">
       <div class="bk-still" ${still}></div>
       <div class="bk-body">
@@ -2460,7 +2460,7 @@ kbd {
     if (series) status = it.completed ? `Finished (${it.played}/${it.total} eps)` : (it.played ? `Watching (${it.played}/${it.total} eps)` : 'Started');
     const rating = store.get('rating.' + it.id, 0);
     const noteVal = store.get('note.' + it.id, '');
-    const starsHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" data-pstar="${n}" class="${n <= rating ? 'on' : ''}" aria-label="Rate ${n} star${n > 1 ? 's' : ''}">${STAR}</button>`).join('');
+    const starsHTML = [1, 2, 3, 4, 5].map(n => `<button type="button" data-pstar="${n}" class="${n <= rating ? 'on' : ''}" aria-pressed="${n === rating}" aria-label="Rate ${n} star${n > 1 ? 's' : ''}">${STAR}</button>`).join('');
 
     const castHTML = it.cast && it.cast.length ? `
       <h3>Starring</h3>
@@ -2627,8 +2627,9 @@ kbd {
 
   function setRating(it, n) {
     store.set('rating.' + it.id, n);
-    if (box) $$('.stars button', box).forEach(x => x.classList.toggle('on', +x.dataset.star <= n));
-    $$('[data-pstar]', leftPanel).forEach(x => x.classList.toggle('on', +x.dataset.pstar <= n));
+    // .on fills the stars up to n; aria-pressed marks only the chosen one so a screen reader hears the rating.
+    if (box) $$('.stars button', box).forEach(x => { x.classList.toggle('on', +x.dataset.star <= n); x.setAttribute('aria-pressed', +x.dataset.star === n); });
+    $$('[data-pstar]', leftPanel).forEach(x => { x.classList.toggle('on', +x.dataset.pstar <= n); x.setAttribute('aria-pressed', +x.dataset.pstar === n); });
     updateStageMeta(it);
     tick('lift');
   }
