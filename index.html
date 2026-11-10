@@ -270,6 +270,17 @@ kbd {
 .trakt-pop input:focus, .seerr-config input:focus { border-color: var(--sofa); box-shadow: 0 0 0 3px rgba(74, 88, 144, .25); }
 .trakt-pop input::placeholder, .seerr-config input::placeholder { color: var(--t3); }
 .trakt-pop .err { color: #a33a12; font-weight: 600; margin: 10px 0 0; }
+.backup-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.backup-acts a { text-decoration: none; }
+.backup-acts input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.backup-acts label:focus-within { outline: 2px solid var(--sofa); outline-offset: 2px; }
+.trakt-pop .ok { color: var(--t1); font-weight: 600; margin: 10px 0 0; }
+@media (max-width: 640px) {
+  /* The buttons wrap on phones, so hang the popovers from the whole card rather than one button. */
+  .sync { position: relative; }
+  .trakt { position: static; }
+  .trakt-pop { left: 0; right: 0; width: auto; max-width: none; top: calc(100% + 8px); }
+}
 
 .ledger {
   margin: 10px 0 0;
@@ -1751,6 +1762,18 @@ kbd {
         {{- end}}
       </div>
     </details>
+    <details class="trakt backup">
+      <summary class="text-btn">Backup</summary>
+      <div class="trakt-pop">
+        <p>Your ratings and liner notes are saved on this server. Download a backup of the whole shelf, or restore one.</p>
+        <div class="backup-acts">
+          <a class="text-btn" href="export.json" download>Download backup</a>
+          <a class="text-btn" href="export.csv" download>Spreadsheet (CSV)</a>
+          <label class="text-btn">Restore…<input type="file" id="restore" accept=".json,application/json"></label>
+        </div>
+        <p id="restore-msg" role="status" hidden></p>
+      </div>
+    </details>
   </div>
 </header>
 
@@ -1794,6 +1817,7 @@ kbd {
   </div>
 </main>
 
+<script type="application/json" id="marks">{{json .Marks}}</script>
 <div id="data" hidden>
 {{- range .Items}}
   <i data-id="{{.ID}}" data-type="{{.Type}}" data-title="{{.Title}}" data-year="{{.Year}}" data-date="{{iso .LastPlayed}}" data-poster="{{.Poster}}" data-played="{{.Played}}" data-total="{{.Total}}" data-completed="{{.Completed}}"{{if .Ext}} data-tmdb="{{index .Ext "tmdb"}}" data-imdb="{{index .Ext "imdb"}}"{{end}}></i>
@@ -1854,10 +1878,84 @@ kbd {
   const JF = (body.dataset.jf || '').replace(/\/+$/, '');
   const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const store = {
+  const local = {
     get(k, d) { try { const v = localStorage.getItem('watched.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-    set(k, v) { try { localStorage.setItem('watched.' + k, JSON.stringify(v)); } catch {} }
+    set(k, v) { try { localStorage.setItem('watched.' + k, JSON.stringify(v)); } catch {} },
+    del(k) { try { localStorage.removeItem('watched.' + k); } catch {} }
   };
+
+  /* Ratings and notes live on the server (DATA_DIR/marks.json); everything else stays in this browser. */
+  const MARKS = (() => { try { return JSON.parse($('#marks').textContent) || {}; } catch { return {}; } })();
+  const markKey = k => { const m = /^(rating|note)\.(.+)$/.exec(k); return m && !m[2].startsWith('sample-') ? { field: m[1], id: m[2] } : null; };
+  const pending = {};
+  let flushT = 0;
+  function flushMarks(delay = 250) {
+    clearTimeout(flushT);
+    flushT = setTimeout(async () => {
+      const batch = { ...pending };
+      if (!Object.keys(batch).length) return;
+      try {
+        const r = await fetch('api/marks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(batch) });
+        if (!r.ok) throw new Error(await r.text());
+        for (const [id, m] of Object.entries(batch)) {
+          if (pending[id] === m) delete pending[id];
+          local.del('rating.' + id); local.del('note.' + id);
+        }
+      } catch (err) {
+        // Keep a copy in this browser so nothing is lost, and try again shortly.
+        for (const [id, m] of Object.entries(batch)) { local.set('rating.' + id, m.rating); local.set('note.' + id, m.note); }
+        console.warn('Could not save ratings and notes; retrying.', err);
+        flushMarks(15000);
+      }
+    }, delay);
+  }
+  addEventListener('pagehide', () => {
+    if (Object.keys(pending).length) navigator.sendBeacon('api/marks', JSON.stringify(pending));
+  });
+  const store = {
+    get(k, d) {
+      const mk = markKey(k);
+      if (!mk) return local.get(k, d);
+      const v = MARKS[mk.id] && MARKS[mk.id][mk.field];
+      return v == null ? d : v;
+    },
+    set(k, v) {
+      const mk = markKey(k);
+      if (!mk) return local.set(k, v);
+      const m = MARKS[mk.id] = { rating: 0, note: '', ...MARKS[mk.id], [mk.field]: v };
+      pending[mk.id] = m;
+      flushMarks();
+    }
+  };
+  // Move ratings and notes saved by older versions (in this browser only) to the server,
+  // unless the server already has something for that title.
+  try {
+    const found = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const mk = markKey((localStorage.key(i) || '').replace(/^watched\./, ''));
+      if (mk && localStorage.key(i).startsWith('watched.') && !MARKS[mk.id]) (found[mk.id] ||= {})[mk.field] = local.get(mk.field + '.' + mk.id, mk.field === 'rating' ? 0 : '');
+    }
+    for (const [id, m] of Object.entries(found)) {
+      if (!m.rating && !m.note) continue;
+      MARKS[id] = pending[id] = { rating: +m.rating || 0, note: String(m.note || '') };
+    }
+    if (Object.keys(pending).length) flushMarks(0);
+  } catch {}
+  const restoreIn = $('#restore'), restoreMsg = $('#restore-msg');
+  if (restoreIn) restoreIn.addEventListener('change', async () => {
+    const f = restoreIn.files[0];
+    restoreIn.value = '';
+    if (!f) return;
+    const say = (text, ok) => { restoreMsg.hidden = false; restoreMsg.className = ok ? 'ok' : 'err'; restoreMsg.textContent = text; };
+    if (!confirm(`Restore ratings and notes from ${f.name}? Titles in the backup replace what is saved for them now.`)) return;
+    try {
+      const r = await fetch('api/marks/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: await f.text() });
+      if (!r.ok) throw new Error((await r.text()).trim() || 'Restore failed');
+      const res = await r.json();
+      say(`Restored ${res.restored} title${res.restored === 1 ? '' : 's'}` + (res.kept ? `; kept ${res.kept} more for titles not on the shelf.` : '.') + ' Reloading…', true);
+      setTimeout(() => location.reload(), 1200);
+    } catch (err) { say(err.message, false); }
+  });
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const hash = s => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

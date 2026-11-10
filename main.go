@@ -182,11 +182,15 @@ type app struct {
 	items     []entry      // both merged, as shown on the page
 	syncErr   string
 	importErr string
+
+	marksMu sync.Mutex      // serialises rating and note writes
+	marks   map[string]mark // ratings and notes by item ID; replaced, never modified in place
 }
 
 func (a *app) statePath() string  { return filepath.Join(a.cfg.dataDir, "state.json") }
 func (a *app) traktPath() string  { return filepath.Join(a.cfg.dataDir, "trakt.json") }
 func (a *app) postersDir() string { return filepath.Join(a.cfg.dataDir, "posters") }
+func (a *app) marksPath() string  { return filepath.Join(a.cfg.dataDir, "marks.json") }
 
 // connect resolves the configured user and excluded libraries to Jellyfin IDs.
 // The caller must hold syncMu.
@@ -379,6 +383,7 @@ func (a *app) routes() http.Handler {
 			"Trakt": a.tr.clientID != "", "ImportUser": imp.User, "ImportCount": len(imp.Items),
 			"ImportAgo": ago(imp.ImportedAt), "ImportErr": importErr,
 			"JellyfinURL": a.cfg.url, "SeerrURL": a.cfg.seerrURL, "User": a.cfg.user,
+			"Marks": pageMarks(a.marksSnapshot()),
 		})
 		if err != nil {
 			slog.Error("render failed", "err", err)
@@ -441,6 +446,7 @@ func (a *app) routes() http.Handler {
 		w.Header().Set("Location", "./")
 		w.WriteHeader(http.StatusSeeOther)
 	})
+	a.markRoutes(mux)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok\n"))
 	})
@@ -554,6 +560,11 @@ func main() {
 		slog.Warn("ignoring unreadable Trakt import", "err", err)
 	}
 	a.items = merge(a.st.Items, a.imported.Items)
+	if err := loadJSON(a.marksPath(), &a.marks); err != nil {
+		// Don't start with an empty set: the next save would overwrite the user's notes.
+		slog.Error("marks.json is unreadable; fix or move it, then restart", "err", err)
+		os.Exit(1)
+	}
 
 	// Serve (cached data) straight away, even if Jellyfin is slow to answer.
 	ln, err := net.Listen("tcp", ":"+cfg.port)

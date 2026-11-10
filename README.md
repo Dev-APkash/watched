@@ -23,7 +23,7 @@ Most "what have I watched" tools need you to sign up for a tracking service, con
 - **Your history stays on your server.** Jellyfin already records what you've watched; Watched just shows it. There's nothing to sign up for and nothing to scrobble.
 - **No telemetry, analytics or phoning home.** Watched talks only to your Jellyfin server, plus Trakt *only* if you use the optional import.
 - **Your browser loads nothing from the internet.** Fonts, artwork and posters are all served by Watched itself. No CDNs, trackers or third-party scripts, so your browser never contacts Jellyfin and your API key never leaves the server.
-- **Ratings and liner notes stay in your browser.** They're saved in the browser's local storage, not sent anywhere.
+- **Ratings and liner notes stay on your server.** They're saved in Watched's own data folder, so every browser you use sees them, and they're never sent anywhere else.
 
 ### Still small
 
@@ -42,7 +42,8 @@ The container runs as an unprivileged user on a [distroless](https://github.com/
 - **A shelf of cases.** Every watched movie and show stands on a wooden bookcase in an animated, illustrated log cabin: rain on the window, the fire going, steam off the kettle. Shelves are labelled by when you watched what's on them.
 - **Pick up any case.** It comes off the shelf in 3D. Drag to spin it, scroll to turn it, and press **B** to flip to the back cover with the synopsis, watch facts, episode progress and a barcode.
 - **Open it up.** Press **O** to swing the lid open, read the liner notes inside, and pop the disc out to spin it. Sounds are synthesized in the browser (off by default).
-- **Rate and annotate.** Give a title stars and write liner notes. Both stay in sync between the side panel and the case itself.
+- **Rate and annotate.** Give a title stars and write liner notes. Both stay in sync between the side panel and the case itself, and they're saved on your server, so they follow you to any browser.
+- **Back it up.** **Backup** downloads the whole shelf with your ratings and notes as JSON, or as a CSV for spreadsheets, and restores ratings and notes from a JSON backup.
 - **Watch it.** **Stream on Jellyfin** opens the title in your Jellyfin. There's a trailer search link too.
 - **More like this.** Recommendations link to your [Jellyseerr / Seerr](#jellyseerr--seerr) so you can request them.
 - Shows appear once you've watched an episode, with progress like `12 / 24 episodes`, and are marked complete when you've seen them all.
@@ -203,9 +204,20 @@ Everything Watched stores on the server lives in the `/data` volume:
 |---|---|
 | `state.json` | The last list synced from Jellyfin |
 | `trakt.json` | Your Trakt import, if you made one |
+| `marks.json` | Your star ratings and liner notes |
 | `posters/` | One small image per title. Posters of titles you no longer have are deleted on each sync |
 
-Your star ratings, liner notes, sound setting and Seerr address are stored in your browser's local storage (keys starting with `watched.`), so they're per browser and never leave it.
+Your sound setting and Seerr address are stored in your browser's local storage (keys starting with `watched.`), so they're per browser. Ratings and notes saved by an older version in local storage move to `marks.json` the first time you open the page.
+
+### Backups
+
+Open **Backup** on the page:
+
+- **Download backup** saves `watched-<date>.json` with every title on the shelf (watch dates, episodes, external ids) plus your ratings and notes.
+- **Spreadsheet (CSV)** saves the same list as a CSV file.
+- **Restore…** reads a JSON backup and puts its ratings and notes back. Titles are matched by their Jellyfin id, or by IMDb, TMDB or TVDB id if the id has changed (for example after rebuilding your Jellyfin server). A restore replaces the rating and note of each title in the backup and leaves all the others alone. Watch history always comes from Jellyfin and Trakt, so a restore doesn't change it.
+
+To back up from a script, fetch `/export.json` or copy `marks.json` from the data volume.
 
 Network requests Watched makes:
 
@@ -214,7 +226,7 @@ Network requests Watched makes:
 
 That's all. There's no telemetry or update check. The page itself only loads from Watched; the trailer and Seerr links open other sites only when you click them.
 
-The page has no login, which suits a home network. If you expose it to the internet, put it behind your reverse proxy's authentication. Anyone who can open the page can also start a Trakt import; set `TRAKT_CLIENT_ID=off` if you don't want that.
+The page has no login, which suits a home network. If you expose it to the internet, put it behind your reverse proxy's authentication. Anyone who can open the page can also change ratings and notes, restore a backup, and start a Trakt import; set `TRAKT_CLIENT_ID=off` if you don't want that.
 
 The container runs as user `65532`. Named volumes just work. If you bind-mount a folder instead, make it writable for that user: `sudo chown 65532:65532 ./data`.
 
@@ -239,6 +251,10 @@ Both read the same `/data` volume, so you can switch between them in either dire
 | `GET /assets/{name}` | Backdrop artwork and fonts |
 | `POST /refresh` | Sync with Jellyfin now |
 | `POST /import-trakt` | Import a public Trakt profile (form field `profile`) |
+| `POST /api/marks` | Save ratings and notes: `{"<item id>": {"rating": 4, "note": "…"}}`. A rating of `0` or an empty note clears it |
+| `GET /export.json` | Download a backup of the shelf with ratings and notes |
+| `GET /export.csv` | The same as a CSV file |
+| `POST /api/marks/restore` | Restore ratings and notes from a backup file (the JSON body) |
 | `GET /health` | Returns `ok`; used by the image's built-in Docker `HEALTHCHECK` |
 
 ## Build from source
@@ -310,7 +326,11 @@ Use your *profile* link (`https://trakt.tv/users/<name>`), not a movie or list p
 
 ### My ratings and notes disappeared
 
-They live in the browser you wrote them in. A different browser, a private window, or clearing site data starts fresh.
+They live in `marks.json` in the data volume. If the volume was deleted or replaced, restore a backup from **Backup → Restore…**. Since version 2.1 ratings and notes are kept on the server. Older versions saved them in the browser, and they move to the server the next time you open the page in that browser.
+
+### "marks.json is unreadable"
+
+Watched won't start with a damaged `marks.json`, so it can't overwrite your notes with an empty file. Fix the file, or move it aside and restore a backup.
 
 ### The page feels heavy on an old device
 
