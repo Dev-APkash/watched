@@ -2939,25 +2939,35 @@ kbd {
   let toggleSeq = 0, pickupTime = 0, clickedOpen = false;
   async function toggleOpen() {
     if (!current || putBack.busy) return;
-    const seq = ++toggleSeq;
+    const seq = ++toggleSeq, it = current;
+    const live = () => seq === toggleSeq && current === it && !putBack.busy;
+    // A click or the start of a drag cancels whatever tween is running. Finish the lid and disc
+    // anyway (rotation is left to the drag), so the case never stays half-open or shuts on the disc.
+    const settle = async to => {
+      for (let i = 0; i < 3 && live(); i++) {
+        if (Object.keys(to).every(k => Math.abs(S[k] - to[k]) <= Math.max(1, Math.abs(to[k])) * .01)) return;
+        await tween(to, 320, easeInOut);
+      }
+    };
     const open = S.open > -60;
     setOpenUI(open);
     tick('hinge');
     if (open) {
       if (box) box.classList.remove('disc-out');
       await tween({ tx: 0, ty: 0, tz: 18, s: .94, open: -158, shift: W * .46, rx: -3, ry: nearest(S.ry, 6), pop: 0 }, 760);
-      if (seq !== toggleSeq || !current) return;
-      if (S.open < -100) {
-        tick('lift');
-        await tween({ pop: 1 }, 600);
-        if (seq !== toggleSeq || !box) return;
-        if (S.pop > .9) box.classList.add('disc-out');
-      }
+      await settle({ open: -158, shift: W * .46 });
+      if (!live()) return;
+      tick('lift');
+      await tween({ pop: 1 }, 600);
+      await settle({ pop: 1 });
+      if (live() && box && S.pop > .9) box.classList.add('disc-out');
     } else {
       if (box) box.classList.remove('disc-out');
       if (S.pop > .01) await tween({ pop: 0 }, 260, easeInOut);
-      if (seq !== toggleSeq || !current) return;
-      await tween({ tx: 0, ty: 0, tz: 28, s: 1, open: 0, shift: 0, rx: -3.5, ry: nearest(S.ry, -24) }, 640, easeInOut);
+      if (!live()) return;
+      // pop: 0 again, and settle afterwards, in case a step was cut short: the lid must never shut on the disc.
+      await tween({ tx: 0, ty: 0, tz: 28, s: 1, open: 0, shift: 0, pop: 0, rx: -3.5, ry: nearest(S.ry, -24) }, 640, easeInOut);
+      await settle({ open: 0, shift: 0, pop: 0 });
     }
   }
 
@@ -2971,10 +2981,11 @@ kbd {
     const t = targets[face] || targets.front;
     tick('lift');
     if (S.open < -1 && face !== 'front') {
+      toggleSeq++; // this closes the case, so an open/close still finishing must stop
       setOpenUI(false);
       if (box) box.classList.remove('disc-out');
       if (S.pop > .01) await tween({ pop: 0 }, 240, easeInOut);
-      tween({ tx: 0, ty: 0, tz: t.tz, s: t.s, open: 0, shift: 0, rx: t.rx, ry: nearest(S.ry, t.ry) }, 720, easeInOut, 40);
+      tween({ tx: 0, ty: 0, tz: t.tz, s: t.s, open: 0, shift: 0, pop: 0, rx: t.rx, ry: nearest(S.ry, t.ry) }, 720, easeInOut, 40);
       return;
     }
     tween({ tx: 0, ty: 0, tz: t.tz, s: t.s, rx: t.rx, ry: nearest(S.ry, t.ry) }, 720, easeInOut, 40);
@@ -3060,7 +3071,8 @@ kbd {
   st3d.addEventListener('pointerdown', e => {
     if (!current || putBack.busy || lifting || e.button > 0 || e.target.closest('textarea, a, input')) return;
     if (!e.target.closest('button')) e.preventDefault();
-    cancelTween();
+    // The second press of a double-click must not cut short what the first click started (opening or closing).
+    if (e.detail < 2) cancelTween();
     S.rx += curHoverRx; S.ry += curHoverRy;
     hoverRx = hoverRy = curHoverRx = curHoverRy = 0;
     syncTargets();
