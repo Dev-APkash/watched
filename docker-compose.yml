@@ -1,6 +1,6 @@
 services:
   watched:
-    image: ghcr.io/dev-apkash/watched:1
+    image: ghcr.io/dev-apkash/watched:2
     container_name: watched
     restart: unless-stopped
     ports:
